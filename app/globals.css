@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    /* Base - Warm Cream & Deep Slate */
+    --background: 40 20% 99%;
+    --foreground: 180 20% 15%;
+
+    /* Cards - White with subtle warmth */
+    --card: 0 0% 100%;
+    --card-foreground: 180 20% 15%;
+
+    /* Popovers */
+    --popover: 0 0% 100%;
+    --popover-foreground: 180 20% 15%;
+
+    /* Primary - Deep Teal/Green (Professional, Trust) */
+    --primary: 176 61% 19%;
+    --primary-foreground: 40 20% 99%;
+
+    /* Secondary - Warm Beige (Human, Approachable) */
+    --secondary: 35 30% 94%;
+    --secondary-foreground: 176 61% 19%;
+
+    /* Muted - Subtle Grays */
+    --muted: 220 10% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    /* Accent - Terra Cotta / Burnt Orange (Focus, Action) */
+    --accent: 24 75% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive - Soft Red */
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders & Inputs */
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 176 61% 19%;
+
+    /* Charts - Earthy Tones */
+    --chart-1: 176 61% 19%; /* Primary Teal */
+    --chart-2: 24 75% 50%;  /* Accent Orange */
+    --chart-3: 45 60% 45%;  /* Gold/Ochre */
+    --chart-4: 150 40% 40%; /* Sage Green */
+    --chart-5: 200 20% 40%; /* Slate Blue */
+
+    --radius: 0.75rem;
+
+    /* Sidebar - Inverted or Dark Theme */
+    --sidebar-background: 176 61% 15%; /* Darker Primary */
+    --sidebar-foreground: 40 20% 95%;
+    --sidebar-primary: 24 75% 50%; /* Accent for active items */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 176 61% 20%;
+    --sidebar-accent-foreground: 40 20% 100%;
+    --sidebar-border: 176 61% 20%;
+    --sidebar-ring: 24 75% 50%;
+  }
+
+  .dark {
+    /* Dark Mode - Deep Forest & Night */
+    --background: 180 25% 10%;
+    --foreground: 40 20% 95%;
+
+    --card: 180 25% 12%;
+    --card-foreground: 40 20% 95%;
+
+    --popover: 180 25% 12%;
+    --popover-foreground: 40 20% 95%;
+
+    --primary: 176 50% 50%; /* Brighter Teal for Dark Mode */
+    --primary-foreground: 180 25% 10%;
+
+    --secondary: 180 20% 18%;
+    --secondary-foreground: 40 20% 95%;
+
+    --muted: 180 20% 20%;
+    --muted-foreground: 220 10% 65%;
+
+    --accent: 24 80% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 180 20% 20%;
+    --input: 180 20% 20%;
+    --ring: 176 50% 50%;
+
+    --chart-1: 176 50% 50%;
+    --chart-2: 24 80% 60%;
+    --chart-3: 45 70% 55%;
+    --chart-4: 150 50% 50%;
+    --chart-5: 200 30% 60%;
+
+    --sidebar-background: 180 30% 8%;
+    --sidebar-foreground: 40 20% 90%;
+    --sidebar-primary: 176 50% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 180 20% 15%;
+    --sidebar-accent-foreground: 40 20% 100%;
+    --sidebar-border: 180 20% 20%;
+    --sidebar-ring: 176 50% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading tracking-tight text-primary;
+  }
+}
