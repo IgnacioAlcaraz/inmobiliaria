@@ -111,15 +111,22 @@ export async function POST(req: NextRequest) {
     // Call n8n webhook
     let n8nResponse: Response
     try {
-      n8nResponse = await fetch(webhookUrl, {
+      const isDev = process.env.NODE_ENV === 'development'
+      
+      const fetchOptions: RequestInit & { dispatcher?: any } = {
         method: 'POST',
         headers,
         body: payload,
-        // @ts-expect-error -- Node 18+ undici option to skip TLS verification for self-signed certs
-        dispatcher: new (await import('undici')).Agent({
+      }
+
+      // Only skip TLS verification in development if using self-signed certs
+      if (isDev) {
+        fetchOptions.dispatcher = new (await import('undici')).Agent({
           connect: { rejectUnauthorized: false },
-        }),
-      })
+        })
+      }
+
+      n8nResponse = await fetch(webhookUrl, fetchOptions)
     } catch (fetchErr) {
       return NextResponse.json(
         { error: `Error de conexion con n8n: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}` },
