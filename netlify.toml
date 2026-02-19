@@ -2,5 +2,10 @@
   command = "npm run build"
   publish = ".next"
 
+[build.environment]
+  # Permitir claves públicas de Supabase en el build (no son secretos sensibles)
+  # Las URLs de N8N webhooks NO tienen NEXT_PUBLIC_ porque son solo servidor
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
