@@ -2,27 +2,46 @@ import { NextRequest } from 'next/server'
 import { validateManagerRequest, managerSuccess, managerError } from '@/lib/manager-auth'
 
 export async function POST(req: NextRequest) {
-  const auth = await validateManagerRequest(req)
-  if (!auth.ok) return auth.response
+  try {
+    const auth = await validateManagerRequest(req)
+    if (!auth.ok) return auth.response
 
-  const { supabase, vendedorIds, body } = auth
+    const { supabase, vendedorIds, body } = auth
 
-  const anio = (body.anio as number) || new Date().getFullYear()
-  const startOfYear = `${anio}-01-01`
-  const endOfYear = `${anio}-12-31`
+    const anio = (body.anio as number) || new Date().getFullYear()
+    const startOfYear = `${anio}-01-01`
+    const endOfYear = `${anio}-12-31`
 
-  // Fetch all data in parallel
-  const [profilesRes, cierresRes, captacionesRes, trackeoRes, objetivosRes] = await Promise.all([
-    supabase.from('profiles').select('id, full_name').in('id', vendedorIds),
-    supabase.from('cierres').select('*').in('user_id', vendedorIds).gte('fecha', startOfYear).lte('fecha', endOfYear),
-    supabase.from('captaciones').select('*').in('user_id', vendedorIds),
-    supabase.from('trackeo').select('*').in('user_id', vendedorIds).gte('fecha', startOfYear).lte('fecha', endOfYear),
-    supabase.from('objetivos').select('*').in('user_id', vendedorIds).eq('anio', anio),
-  ])
+    // Fetch all data in parallel
+    const [profilesRes, cierresRes, captacionesRes, trackeoRes, objetivosRes] = await Promise.all([
+      supabase.from('profiles').select('id, full_name').in('id', vendedorIds),
+      supabase.from('cierres').select('*').in('user_id', vendedorIds).gte('fecha', startOfYear).lte('fecha', endOfYear),
+      supabase.from('captaciones').select('*').in('user_id', vendedorIds),
+      supabase.from('trackeo').select('*').in('user_id', vendedorIds).gte('fecha', startOfYear).lte('fecha', endOfYear),
+      supabase.from('objetivos').select('*').in('user_id', vendedorIds).eq('anio', anio),
+    ])
 
-  if (cierresRes.error || captacionesRes.error || trackeoRes.error) {
-    return managerError('Error fetching data', 500)
-  }
+    // Check for errors in all queries
+    if (profilesRes.error) {
+      console.error('Error fetching profiles:', profilesRes.error)
+      return managerError(`Error fetching profiles: ${profilesRes.error.message}`, 500)
+    }
+    if (cierresRes.error) {
+      console.error('Error fetching cierres:', cierresRes.error)
+      return managerError(`Error fetching cierres: ${cierresRes.error.message}`, 500)
+    }
+    if (captacionesRes.error) {
+      console.error('Error fetching captaciones:', captacionesRes.error)
+      return managerError(`Error fetching captaciones: ${captacionesRes.error.message}`, 500)
+    }
+    if (trackeoRes.error) {
+      console.error('Error fetching trackeo:', trackeoRes.error)
+      return managerError(`Error fetching trackeo: ${trackeoRes.error.message}`, 500)
+    }
+    if (objetivosRes.error) {
+      console.error('Error fetching objetivos:', objetivosRes.error)
+      return managerError(`Error fetching objetivos: ${objetivosRes.error.message}`, 500)
+    }
 
   const profiles = profilesRes.data || []
   const cierres = cierresRes.data || []
@@ -72,21 +91,28 @@ export async function POST(req: NextRequest) {
   const totalCom = vendedorBreakdown.reduce((s, v) => s + v.comisiones, 0)
   const totalPuntas = vendedorBreakdown.reduce((s, v) => s + v.puntas, 0)
 
-  return managerSuccess(
-    {
-      anio,
-      equipo: {
-        vendedores: vendedorBreakdown.length,
-        total_cierres: cierres.length,
-        total_honorarios: Math.round(totalHon * 100) / 100,
-        total_comisiones: Math.round(totalCom * 100) / 100,
-        total_puntas: totalPuntas,
-        total_captaciones_cartera: captaciones.length,
-        total_llamadas: trackeo.reduce((s, t) => s + t.llamadas, 0),
-        total_visitas: trackeo.reduce((s, t) => s + t.visitas, 0),
+    return managerSuccess(
+      {
+        anio,
+        equipo: {
+          vendedores: vendedorBreakdown.length,
+          total_cierres: cierres.length,
+          total_honorarios: Math.round(totalHon * 100) / 100,
+          total_comisiones: Math.round(totalCom * 100) / 100,
+          total_puntas: totalPuntas,
+          total_captaciones_cartera: captaciones.length,
+          total_llamadas: trackeo.reduce((s, t) => s + t.llamadas, 0),
+          total_visitas: trackeo.reduce((s, t) => s + t.visitas, 0),
+        },
+        vendedores: vendedorBreakdown,
       },
-      vendedores: vendedorBreakdown,
-    },
-    vendedorBreakdown.length
-  )
+      vendedorBreakdown.length
+    )
+  } catch (error) {
+    console.error('Unexpected error in /api/agent/manager/resumen:', error)
+    return managerError(
+      error instanceof Error ? error.message : 'Internal server error',
+      500
+    )
+  }
 }
