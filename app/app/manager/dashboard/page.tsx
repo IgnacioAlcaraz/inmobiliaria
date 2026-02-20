@@ -1,25 +1,20 @@
 import { redirect } from 'next/navigation'
+import { getCurrentUser, getCurrentProfile } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/server'
 import { ManagerDashboardContent } from '@/components/manager/manager-dashboard-content'
 import type { Profile } from '@/lib/types'
 
 export default async function ManagerDashboardPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
+  const profile = await getCurrentProfile()
   if (!profile || (profile.role !== 'encargado' && profile.role !== 'admin')) {
     redirect('/app/dashboard')
   }
 
-  // Get assigned vendedores
+  const supabase = await createClient()
+
   const { data: assignments } = await supabase
     .from('manager_vendedores')
     .select('vendedor_id')
@@ -36,18 +31,12 @@ export default async function ManagerDashboardPage() {
     )
   }
 
-  // Fetch vendedor profiles
-  const { data: vendedorProfiles } = await supabase
-    .from('profiles')
-    .select('*')
-    .in('id', vendedorIds)
-
   const year = new Date().getFullYear()
   const startOfYear = `${year}-01-01`
   const endOfYear = `${year}-12-31`
 
-  // Fetch all data for assigned vendedores
-  const [cierresRes, captacionesRes, trackeoRes] = await Promise.all([
+  const [vendedorProfilesRes, cierresRes, captacionesRes, trackeoRes] = await Promise.all([
+    supabase.from('profiles').select('*').in('id', vendedorIds),
     supabase
       .from('cierres')
       .select('*, captacion:captaciones(id, direccion, operacion, moneda)')
@@ -55,10 +44,7 @@ export default async function ManagerDashboardPage() {
       .gte('fecha', startOfYear)
       .lte('fecha', endOfYear)
       .order('fecha', { ascending: false }),
-    supabase
-      .from('captaciones')
-      .select('*')
-      .in('user_id', vendedorIds),
+    supabase.from('captaciones').select('*').in('user_id', vendedorIds),
     supabase
       .from('trackeo')
       .select('*')
@@ -71,7 +57,7 @@ export default async function ManagerDashboardPage() {
   return (
     <div className="p-6">
       <ManagerDashboardContent
-        vendedores={(vendedorProfiles || []) as Profile[]}
+        vendedores={(vendedorProfilesRes.data || []) as Profile[]}
         cierres={cierresRes.data || []}
         captaciones={captacionesRes.data || []}
         trackeo={trackeoRes.data || []}

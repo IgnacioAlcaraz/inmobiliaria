@@ -1,24 +1,26 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/supabase/queries'
+import { createClient } from '@/lib/supabase/server'
 import { AppHeader } from '@/components/app-header'
 import { ObjetivosContent } from '@/components/objetivos/objetivos-content'
 
 export default async function ObjetivosPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const { data: objetivos } = await supabase
-    .from('objetivos')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('anio', { ascending: false })
+  const supabase = await createClient()
 
-  // Get cierres to calculate actual progress
-  const { data: cierres } = await supabase
-    .from('cierres')
-    .select('id, fecha, valor_cierre, porcentaje_honorarios, porcentaje_agente, puntas')
-    .eq('user_id', user.id)
+  const [{ data: objetivos }, { data: cierres }] = await Promise.all([
+    supabase
+      .from('objetivos')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('anio', { ascending: false }),
+    supabase
+      .from('cierres')
+      .select('id, fecha, valor_cierre, porcentaje_honorarios, porcentaje_agente, puntas')
+      .eq('user_id', user.id),
+  ])
 
   return (
     <>

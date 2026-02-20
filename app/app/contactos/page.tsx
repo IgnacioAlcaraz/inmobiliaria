@@ -1,56 +1,52 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/supabase/queries'
+import { createClient } from '@/lib/supabase/server'
 import { AppHeader } from '@/components/app-header'
 import { ContactosContent } from '@/components/contactos/contactos-content'
 
 export default async function ContactosPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  // Fetch contactos with joined propiedades and tags
-  const { data: contactos } = await supabase
-    .from('contactos')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const supabase = await createClient()
 
-  // Fetch all tags for this user
-  const { data: tags } = await supabase
-    .from('contacto_tags')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('nombre')
+  const [{ data: contactos }, { data: tags }, { data: captaciones }] = await Promise.all([
+    supabase
+      .from('contactos')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('contacto_tags')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('nombre'),
+    supabase
+      .from('captaciones')
+      .select('id, direccion, operacion')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+  ])
 
-  // Fetch tag links for all contactos
   const contactoIds = (contactos || []).map((c) => c.id)
   let tagLinks: { contacto_id: string; tag_id: string }[] = []
-  if (contactoIds.length > 0) {
-    const { data } = await supabase
-      .from('contacto_tag_links')
-      .select('contacto_id, tag_id')
-      .in('contacto_id', contactoIds)
-    tagLinks = data || []
-  }
-
-  // Fetch propiedades for all contactos
   let propiedades: { id: string; contacto_id: string; propiedad_id: string }[] = []
+
   if (contactoIds.length > 0) {
-    const { data } = await supabase
-      .from('contacto_propiedades')
-      .select('id, contacto_id, propiedad_id')
-      .in('contacto_id', contactoIds)
-    propiedades = data || []
+    const [tagLinksRes, propiedadesRes] = await Promise.all([
+      supabase
+        .from('contacto_tag_links')
+        .select('contacto_id, tag_id')
+        .in('contacto_id', contactoIds),
+      supabase
+        .from('contacto_propiedades')
+        .select('id, contacto_id, propiedad_id')
+        .in('contacto_id', contactoIds),
+    ])
+    tagLinks = tagLinksRes.data || []
+    propiedades = propiedadesRes.data || []
   }
 
-  // Fetch captaciones for property linking
-  const { data: captaciones } = await supabase
-    .from('captaciones')
-    .select('id, direccion, operacion')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-
-  // Merge tags and propiedades into contactos
   const contactosWithRelations = (contactos || []).map((c) => ({
     ...c,
     tags: tagLinks
