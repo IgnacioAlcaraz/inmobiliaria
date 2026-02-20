@@ -65,8 +65,8 @@ export interface Cierre {
   puntas: number
   notas: string | null
   created_at: string
-  // joined fields
-  captacion?: Captacion
+  // joined fields (Supabase returns null when join has no match)
+  captacion?: Captacion | null
 }
 
 // Computed fields for display
