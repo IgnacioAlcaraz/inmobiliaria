@@ -17,8 +17,8 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'RE/MAX CRM - Gestión Comercial',
-  description: 'Sistema de gestión comercial inmobiliaria para equipos RE/MAX',
+  title: 'Test CRM - Gestión Comercial',
+  description: 'Sistema de gestión comercial inmobiliaria para equipos Test',
 }
 
 export default function RootLayout({

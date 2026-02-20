@@ -19,6 +19,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Mensaje vacio' }, { status: 400 })
     }
 
+    const MAX_MESSAGE_LENGTH = 4000
+    if (message.trim().length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json({ error: 'Mensaje demasiado largo' }, { status: 400 })
+    }
+
     const trimmed = message.trim()
 
     // Get user role to determine context
@@ -30,9 +35,31 @@ export async function POST(req: NextRequest) {
 
     const isManager = profile?.role === 'encargado'
 
-    // Determine scope and target
-    const chatScope = scope || 'personal'
-    const chatTargetUserId = targetUserId || null
+    // Whitelist scope values — never trust client-supplied scope directly
+    const ALLOWED_SCOPES = ['personal', 'equipo', 'vendedor'] as const
+    type ChatScope = typeof ALLOWED_SCOPES[number]
+    const chatScope: ChatScope = ALLOWED_SCOPES.includes(scope) ? scope : 'personal'
+
+    // Validate targetUserId format if provided
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const rawTargetUserId = targetUserId && typeof targetUserId === 'string' && uuidRegex.test(targetUserId)
+      ? targetUserId
+      : null
+    const chatTargetUserId = rawTargetUserId
+
+    // Managers: verify targetUserId belongs to one of their assigned vendedores
+    if (isManager && chatScope === 'vendedor' && chatTargetUserId) {
+      const { data: assignment } = await supabase
+        .from('manager_vendedores')
+        .select('id')
+        .eq('manager_id', user.id)
+        .eq('vendedor_id', chatTargetUserId)
+        .maybeSingle()
+
+      if (!assignment) {
+        return NextResponse.json({ error: 'Vendedor no asignado' }, { status: 403 })
+      }
+    }
 
     // Build history query with proper filtering
     let historyQuery = supabase

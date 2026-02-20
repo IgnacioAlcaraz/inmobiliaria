@@ -4,18 +4,16 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Building2, Loader2, UserPlus, CheckCircle2 } from 'lucide-react'
+import { Building2, Loader2, CheckCircle2 } from 'lucide-react'
 
 export default function SignUpPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
-  const [role, setRole] = useState<'vendedor' | 'encargado'>('vendedor')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -42,15 +40,14 @@ export default function SignUpPage() {
             `${window.location.origin}/app/dashboard`,
           data: {
             full_name: fullName,
-            role,
           },
         },
       })
-      
+
       if (error) throw error
 
       if (data.session) {
-        router.push(role === 'encargado' ? '/app/manager/dashboard' : '/app/dashboard')
+        router.push('/app/dashboard')
       } else {
         router.push('/signup-success')
       }
@@ -120,37 +117,6 @@ export default function SignUpPage() {
                 autoComplete="name"
                 className="h-11"
               />
-            </div>
-
-            <div className="space-y-3">
-              <Label>Tipo de Perfil</Label>
-              <RadioGroup
-                defaultValue="vendedor"
-                value={role}
-                onValueChange={(val) => setRole(val as 'vendedor' | 'encargado')}
-                className="grid grid-cols-2 gap-4"
-              >
-                <div>
-                  <RadioGroupItem value="vendedor" id="vendedor" className="peer sr-only" />
-                  <Label
-                    htmlFor="vendedor"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer transition-all h-full text-center"
-                  >
-                    <UserPlus className="mb-2 h-6 w-6" />
-                    Agente / Vendedor
-                  </Label>
-                </div>
-                <div>
-                  <RadioGroupItem value="encargado" id="encargado" className="peer sr-only" />
-                  <Label
-                    htmlFor="encargado"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer transition-all h-full text-center"
-                  >
-                    <Building2 className="mb-2 h-6 w-6" />
-                    Manager / Encargado
-                  </Label>
-                </div>
-              </RadioGroup>
             </div>
 
             <div className="space-y-2">

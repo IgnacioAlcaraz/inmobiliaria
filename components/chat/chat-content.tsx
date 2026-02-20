@@ -89,7 +89,14 @@ export function ChatContent({ initialMessages }: ChatContentProps) {
     if (!confirm('Borrar todo el historial de chat?')) return
 
     const supabase = createClient()
-    const { error } = await supabase.from('chat_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { error } = await supabase
+      .from('chat_messages')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('scope', 'personal')
 
     if (error) {
       toast.error('Error al borrar historial')

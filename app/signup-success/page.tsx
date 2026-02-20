@@ -14,7 +14,7 @@ export default function SignUpSuccessPage() {
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-center gap-2">
             <Building2 className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">RE/MAX CRM</span>
+            <span className="text-2xl font-bold text-foreground">Test CRM</span>
           </div>
           <Card>
             <CardHeader className="text-center">

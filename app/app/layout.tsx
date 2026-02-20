@@ -30,7 +30,7 @@ export default async function AppLayout({
     <SidebarProvider>
       <AppSidebar profile={profile} />
       <SidebarInset>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 page-enter">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )

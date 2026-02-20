@@ -53,7 +53,7 @@ export default function LoginPage() {
             <div className="h-12 w-12 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center">
               <Building2 className="h-7 w-7" />
             </div>
-            <span className="text-3xl font-heading font-bold tracking-tight">RE/MAX CRM</span>
+            <span className="text-3xl font-heading font-bold tracking-tight">Test CRM</span>
           </div>
           <h1 className="text-5xl font-heading font-bold mb-6 leading-tight">
             Gestión inmobiliaria inteligente.
@@ -78,7 +78,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="nombre@remax.com"
+                placeholder="nombre@test.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -90,7 +90,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Contraseña</Label>
-                <Link href="#" className="text-sm font-medium text-primary hover:underline">
+                <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
