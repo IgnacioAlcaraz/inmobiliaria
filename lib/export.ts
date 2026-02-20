@@ -1,16 +1,16 @@
-export function exportToCSV<T extends Record<string, unknown>>(
+export function exportToCSV<T extends object>(
   data: T[],
   filename: string,
-  columns?: { key: keyof T; label: string }[]
+  columns?: { key: keyof T & string; label: string }[]
 ) {
   if (data.length === 0) return
 
-  const cols = columns || Object.keys(data[0]).map((k) => ({ key: k as keyof T, label: k as string }))
+  const cols = columns || Object.keys(data[0]).map((k) => ({ key: k as keyof T & string, label: k }))
   const header = cols.map((c) => c.label).join(',')
   const rows = data.map((row) =>
     cols
       .map((c) => {
-        const val = row[c.key]
+        const val = (row as Record<string, unknown>)[c.key]
         if (val === null || val === undefined) return ''
         const str = String(val)
         return str.includes(',') || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str
