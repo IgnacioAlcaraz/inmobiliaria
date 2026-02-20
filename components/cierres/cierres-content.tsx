@@ -81,7 +81,7 @@ export function CierresContent({ cierres, captaciones, userId }: CierresContentP
         comision_agente,
         total_puntas: c.puntas,
         acumulado,
-      }
+      } as CierreConCalculos
     })
   }, [cierres])
 
