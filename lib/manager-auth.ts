@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const uuidSchema = z.string().uuid()
@@ -14,7 +14,7 @@ export async function validateManagerRequest(
 ): Promise<
   | {
       ok: true
-      supabase: ReturnType<typeof createClient>
+      supabase: SupabaseClient
       managerId: string
       vendedorIds: string[]
       body: Record<string, unknown>

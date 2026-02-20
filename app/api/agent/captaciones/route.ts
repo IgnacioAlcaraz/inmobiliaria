@@ -10,8 +10,7 @@ export async function POST(req: NextRequest) {
   const auth = await validateAgentRequest(req)
   if (!auth.ok) return auth.response
 
-  const { supabase, userId } = auth
-  const body = auth as Record<string, unknown>
+  const { supabase, userId, body } = auth
 
   try {
     const lim = Math.min(Number(body.limit) || 200, 500)

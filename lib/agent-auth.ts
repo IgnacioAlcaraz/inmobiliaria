@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const uuidSchema = z.string().uuid('userId must be a valid UUID')
@@ -11,7 +11,7 @@ const uuidSchema = z.string().uuid('userId must be a valid UUID')
 export async function validateAgentRequest(
   req: NextRequest
 ): Promise<
-  | { ok: true; supabase: ReturnType<typeof createClient>; userId: string }
+  | { ok: true; supabase: SupabaseClient; userId: string; body: Record<string, unknown> }
   | { ok: false; response: NextResponse }
 > {
   // 1. Check AGENT_SECRET header
@@ -69,7 +69,7 @@ export async function validateAgentRequest(
 
   const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-  return { ok: true, supabase, userId: parsed.data, ...body }
+  return { ok: true, supabase, userId: parsed.data, body }
 }
 
 /** Standard success response */
