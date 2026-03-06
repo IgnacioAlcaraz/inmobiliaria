@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { validateManagerRequest, managerSuccess, managerError } from '@/lib/manager-auth'
+import { validDate, validAnio, validMes } from '@/lib/agent-validate'
 
 export async function POST(req: NextRequest) {
   const auth = await validateManagerRequest(req)
@@ -7,23 +8,34 @@ export async function POST(req: NextRequest) {
 
   const { supabase, vendedorIds, body } = auth
 
+  const rawVendedorId = body.vendedorId as string | undefined
+  const filteredIds = rawVendedorId && vendedorIds.includes(rawVendedorId)
+    ? [rawVendedorId]
+    : vendedorIds
+
   let query = supabase
     .from('cierres')
     .select('*, captacion:captaciones(id, direccion, operacion, moneda, oferta, honorarios_totales)')
-    .in('user_id', vendedorIds)
+    .in('user_id', filteredIds)
     .order('fecha', { ascending: false })
 
-  if (body.desde) query = query.gte('fecha', body.desde as string)
-  if (body.hasta) query = query.lte('fecha', body.hasta as string)
-  if (body.mes && body.anio) {
-    const m = String(body.mes).padStart(2, '0')
-    query = query.gte('fecha', `${body.anio}-${m}-01`).lte('fecha', `${body.anio}-${m}-31`)
-  } else if (body.anio) {
-    query = query.gte('fecha', `${body.anio}-01-01`).lte('fecha', `${body.anio}-12-31`)
+  const desde = validDate(body.desde)
+  const hasta = validDate(body.hasta)
+  const anio = validAnio(body.anio)
+  const mes = validMes(body.mes)
+
+  if (desde) query = query.gte('fecha', desde)
+  if (hasta) query = query.lte('fecha', hasta)
+  if (anio && mes) {
+    const m = String(mes).padStart(2, '0')
+    const endDate = new Date(anio, mes, 0)
+    query = query.gte('fecha', `${anio}-${m}-01`).lte('fecha', `${anio}-${m}-${String(endDate.getDate()).padStart(2, '0')}`)
+  } else if (anio) {
+    query = query.gte('fecha', `${anio}-01-01`).lte('fecha', `${anio}-12-31`)
   }
 
   const { data, error } = await query
-  if (error) return managerError(error.message, 500)
+  if (error) return managerError('Error al obtener cierres', 500)
 
   const enriched = (data || []).map((c) => {
     const hon = (Number(c.valor_cierre) * Number(c.porcentaje_honorarios)) / 100

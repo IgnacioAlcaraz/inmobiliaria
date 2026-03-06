@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { validateManagerRequest, managerSuccess, managerError } from '@/lib/manager-auth'
+import { validAnio } from '@/lib/agent-validate'
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,40 +9,31 @@ export async function POST(req: NextRequest) {
 
     const { supabase, vendedorIds, body } = auth
 
-    const anio = (body.anio as number) || new Date().getFullYear()
+    const anio = validAnio(body.anio) ?? new Date().getFullYear()
     const startOfYear = `${anio}-01-01`
     const endOfYear = `${anio}-12-31`
 
+    // Optional single-vendedor filter (must be in assigned list)
+    const rawVendedorId = body.vendedorId as string | undefined
+    const filteredIds = rawVendedorId && vendedorIds.includes(rawVendedorId)
+      ? [rawVendedorId]
+      : vendedorIds
+
     // Fetch all data in parallel
     const [profilesRes, cierresRes, captacionesRes, trackeoRes, objetivosRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name').in('id', vendedorIds),
-      supabase.from('cierres').select('*').in('user_id', vendedorIds).gte('fecha', startOfYear).lte('fecha', endOfYear),
-      supabase.from('captaciones').select('*').in('user_id', vendedorIds),
-      supabase.from('trackeo').select('*').in('user_id', vendedorIds).gte('fecha', startOfYear).lte('fecha', endOfYear),
-      supabase.from('objetivos').select('*').in('user_id', vendedorIds).eq('anio', anio),
+      supabase.from('profiles').select('id, full_name').in('id', filteredIds),
+      supabase.from('cierres').select('*').in('user_id', filteredIds).gte('fecha', startOfYear).lte('fecha', endOfYear),
+      supabase.from('captaciones').select('*').in('user_id', filteredIds),
+      supabase.from('trackeo').select('*').in('user_id', filteredIds).gte('fecha', startOfYear).lte('fecha', endOfYear),
+      supabase.from('objetivos').select('*').in('user_id', filteredIds).eq('anio', anio),
     ])
 
     // Check for errors in all queries
-    if (profilesRes.error) {
-      console.error('Error fetching profiles:', profilesRes.error)
-      return managerError(`Error fetching profiles: ${profilesRes.error.message}`, 500)
-    }
-    if (cierresRes.error) {
-      console.error('Error fetching cierres:', cierresRes.error)
-      return managerError(`Error fetching cierres: ${cierresRes.error.message}`, 500)
-    }
-    if (captacionesRes.error) {
-      console.error('Error fetching captaciones:', captacionesRes.error)
-      return managerError(`Error fetching captaciones: ${captacionesRes.error.message}`, 500)
-    }
-    if (trackeoRes.error) {
-      console.error('Error fetching trackeo:', trackeoRes.error)
-      return managerError(`Error fetching trackeo: ${trackeoRes.error.message}`, 500)
-    }
-    if (objetivosRes.error) {
-      console.error('Error fetching objetivos:', objetivosRes.error)
-      return managerError(`Error fetching objetivos: ${objetivosRes.error.message}`, 500)
-    }
+    if (profilesRes.error) return managerError('Error al obtener perfiles', 500)
+    if (cierresRes.error) return managerError('Error al obtener cierres', 500)
+    if (captacionesRes.error) return managerError('Error al obtener captaciones', 500)
+    if (trackeoRes.error) return managerError('Error al obtener trackeo', 500)
+    if (objetivosRes.error) return managerError('Error al obtener objetivos', 500)
 
   const profiles = profilesRes.data || []
   const cierres = cierresRes.data || []

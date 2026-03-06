@@ -29,8 +29,8 @@ export default async function CierresPage() {
   }
 
   const [{ data: cierres }, { data: captaciones }] = await Promise.all([
-    cierresQuery,
-    captQuery,
+    cierresQuery.limit(500),
+    captQuery.limit(500),
   ])
 
   return (

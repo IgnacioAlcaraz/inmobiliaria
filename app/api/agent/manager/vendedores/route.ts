@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     .select('id, full_name, role, created_at')
     .in('id', vendedorIds)
 
-  if (error) return managerError(error.message, 500)
+  if (error) return managerError('Error al obtener vendedores', 500)
 
   return managerSuccess(data, data?.length || 0)
 }

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { validateAgentRequest, agentSuccess, agentError } from '@/lib/agent-auth'
+import { validAnio } from '@/lib/agent-validate'
 
 /**
  * POST /api/agent/objetivos
@@ -20,17 +21,15 @@ export async function POST(req: NextRequest) {
       .order('anio', { ascending: false })
       .limit(10)
 
-    const anio = body.anio as number | undefined
-    if (anio) {
-      query = query.eq('anio', anio)
-    }
+    const anio = validAnio(body.anio)
+    if (anio) query = query.eq('anio', anio)
 
     const { data, error } = await query
 
-    if (error) return agentError(error.message, 500)
+    if (error) return agentError('Error al obtener objetivos', 500)
 
     return agentSuccess(data || [], (data || []).length)
-  } catch (err) {
-    return agentError(err instanceof Error ? err.message : 'Unknown error', 500)
+  } catch {
+    return agentError('Error interno', 500)
   }
 }

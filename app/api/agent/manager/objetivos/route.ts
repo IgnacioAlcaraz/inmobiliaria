@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { validateManagerRequest, managerSuccess, managerError } from '@/lib/manager-auth'
+import { validAnio } from '@/lib/agent-validate'
 
 export async function POST(req: NextRequest) {
   const auth = await validateManagerRequest(req)
@@ -12,10 +13,11 @@ export async function POST(req: NextRequest) {
     .select('*')
     .in('user_id', vendedorIds)
 
-  if (body.anio) query = query.eq('anio', body.anio as number)
+  const anio = validAnio(body.anio)
+  if (anio) query = query.eq('anio', anio)
 
   const { data, error } = await query
-  if (error) return managerError(error.message, 500)
+  if (error) return managerError('Error al obtener objetivos', 500)
 
   return managerSuccess(data, data?.length || 0)
 }

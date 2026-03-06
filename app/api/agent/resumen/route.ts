@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { validateAgentRequest, agentSuccess, agentError } from '@/lib/agent-auth'
+import { validAnio } from '@/lib/agent-validate'
 
 /**
  * POST /api/agent/resumen
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
   const { supabase, userId, body } = auth
 
   try {
-    const anio = (body.anio as number) || new Date().getFullYear()
+    const anio = validAnio(body.anio) ?? new Date().getFullYear()
     const yearStart = `${anio}-01-01`
     const yearEnd = `${anio}-12-31`
 
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
     }
 
     return agentSuccess(resumen, 1)
-  } catch (err) {
-    return agentError(err instanceof Error ? err.message : 'Unknown error', 500)
+  } catch {
+    return agentError('Error interno', 500)
   }
 }

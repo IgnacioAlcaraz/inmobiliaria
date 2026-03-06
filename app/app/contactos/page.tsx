@@ -15,7 +15,8 @@ export default async function ContactosPage() {
       .from('contactos')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(500),
     supabase
       .from('contacto_tags')
       .select('*')
@@ -25,7 +26,8 @@ export default async function ContactosPage() {
       .from('captaciones')
       .select('id, direccion, operacion')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(500),
   ])
 
   const contactoIds = (contactos || []).map((c) => c.id)

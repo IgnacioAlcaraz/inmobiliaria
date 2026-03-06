@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 
   let captacionesQuery = supabase
     .from('captaciones')
-    .select('*')
+    .select('id, operacion, fecha_baja, fecha_cierre')
 
   let trackeoQuery = supabase
     .from('trackeo')
@@ -45,9 +45,9 @@ export default async function DashboardPage() {
     { data: captaciones },
     { data: trackeo },
   ] = await Promise.all([
-    cierresQuery,
-    captacionesQuery,
-    trackeoQuery,
+    cierresQuery.limit(500),
+    captacionesQuery.limit(500),
+    trackeoQuery.limit(500),
   ])
 
   return (

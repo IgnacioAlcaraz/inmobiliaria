@@ -43,15 +43,17 @@ export default async function ManagerDashboardPage() {
       .in('user_id', vendedorIds)
       .gte('fecha', startOfYear)
       .lte('fecha', endOfYear)
-      .order('fecha', { ascending: false }),
-    supabase.from('captaciones').select('*').in('user_id', vendedorIds),
+      .order('fecha', { ascending: false })
+      .limit(500),
+    supabase.from('captaciones').select('id, user_id').in('user_id', vendedorIds).limit(500),
     supabase
       .from('trackeo')
       .select('*')
       .in('user_id', vendedorIds)
       .gte('fecha', startOfYear)
       .lte('fecha', endOfYear)
-      .order('fecha', { ascending: false }),
+      .order('fecha', { ascending: false })
+      .limit(500),
   ])
 
   return (

@@ -21,7 +21,7 @@ export default async function CaptacionesPage() {
     query = query.eq('user_id', user.id)
   }
 
-  const { data: captaciones } = await query
+  const { data: captaciones } = await query.limit(500)
 
   return (
     <>

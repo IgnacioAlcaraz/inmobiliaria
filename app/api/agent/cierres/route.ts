@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { validateAgentRequest, agentSuccess, agentError } from '@/lib/agent-auth'
+import { validDate, validAnio, validMes } from '@/lib/agent-validate'
 
 /**
  * POST /api/agent/cierres
@@ -21,14 +22,14 @@ export async function POST(req: NextRequest) {
       .limit(200)
 
     // Filter by date range
-    const fechaDesde = body.fechaDesde as string | undefined
-    const fechaHasta = body.fechaHasta as string | undefined
+    const fechaDesde = validDate(body.fechaDesde)
+    const fechaHasta = validDate(body.fechaHasta)
     if (fechaDesde) query = query.gte('fecha', fechaDesde)
     if (fechaHasta) query = query.lte('fecha', fechaHasta)
 
     // Filter by month/year
-    const mes = body.mes as number | undefined
-    const anio = body.anio as number | undefined
+    const mes = validMes(body.mes)
+    const anio = validAnio(body.anio)
     if (anio && mes) {
       const start = `${anio}-${String(mes).padStart(2, '0')}-01`
       const endDate = new Date(anio, mes, 0) // last day of month
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await query
 
-    if (error) return agentError(error.message, 500)
+    if (error) return agentError('Error al obtener cierres', 500)
 
     // Add computed fields
     const enriched = (data || []).map((c) => {
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     })
 
     return agentSuccess(enriched, enriched.length)
-  } catch (err) {
-    return agentError(err instanceof Error ? err.message : 'Unknown error', 500)
+  } catch {
+    return agentError('Error interno', 500)
   }
 }

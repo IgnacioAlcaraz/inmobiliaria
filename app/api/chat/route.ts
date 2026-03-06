@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { runVendedorAgent, runManagerAgent } from '@/lib/ai/agent'
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const isManager = profile?.role === 'encargado'
+    const isManager = profile?.role === 'encargado' || profile?.role === 'admin'
 
     // Whitelist scope values — never trust client-supplied scope directly
     const ALLOWED_SCOPES = ['personal', 'equipo', 'vendedor'] as const
@@ -61,13 +62,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Rate limiting: max 30 mensajes por hora por usuario
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count: recentCount } = await supabase
+      .from('chat_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('role', 'user')
+      .gte('created_at', oneHourAgo)
+
+    if ((recentCount ?? 0) >= 30) {
+      return NextResponse.json(
+        { error: 'Límite de mensajes alcanzado. Intenta de nuevo en una hora.' },
+        { status: 429 }
+      )
+    }
+
     // Build history query with proper filtering
     let historyQuery = supabase
       .from('chat_messages')
       .select('role, content, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(20)
+      .limit(10)
 
     // For managers, filter by scope and target
     if (isManager) {
@@ -84,7 +101,7 @@ export async function POST(req: NextRequest) {
 
     const { data: history } = await historyQuery
 
-    const chatHistory = (history || []).reverse()
+    const chatHistory = (history || []).reverse() as { role: 'user' | 'assistant'; content: string }[]
 
     // Save user message
     const { error: saveUserError } = await supabase.from('chat_messages').insert({
@@ -99,84 +116,16 @@ export async function POST(req: NextRequest) {
       console.error('Error saving user message:', saveUserError)
     }
 
-    // Prepare webhook URL
-    const webhookUrl = isManager 
-      ? process.env.N8N_MANAGER_WEBHOOK_URL 
-      : process.env.N8N_WEBHOOK_URL
-    const secret = process.env.N8N_CHAT_SECRET
-
-    if (!webhookUrl) {
-      return NextResponse.json({ error: 'Webhook URL no configurado' }, { status: 500 })
-    }
-
-    // Build payload for n8n
-    const payload = isManager
-      ? JSON.stringify({
-          message: trimmed,
-          managerId: user.id,
-          managerName: user.user_metadata?.full_name || 'Encargado',
-          scope: chatScope,
-          vendedorId: chatScope === 'vendedor' ? chatTargetUserId : null,
-          chatHistory,
-        })
-      : JSON.stringify({
-          message: trimmed,
-          userId: user.id,
-          userName: user.user_metadata?.full_name || 'Usuario',
-          chatHistory,
-        })
-
-    // Build headers
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-
-    if (secret) {
-      headers['x-n8n-secret'] = secret
-    }
-
-    // Call n8n webhook
-    let n8nResponse: Response
-    try {
-      const isDev = process.env.NODE_ENV === 'development'
-      
-      const fetchOptions: RequestInit & { dispatcher?: any } = {
-        method: 'POST',
-        headers,
-        body: payload,
-      }
-
-      // Only skip TLS verification in development if using self-signed certs
-      if (isDev) {
-        fetchOptions.dispatcher = new (await import('undici')).Agent({
-          connect: { rejectUnauthorized: false },
-        })
-      }
-
-      n8nResponse = await fetch(webhookUrl, fetchOptions)
-    } catch (fetchErr) {
-      return NextResponse.json(
-        { error: `Error de conexion con n8n: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}` },
-        { status: 502 }
-      )
-    }
-
-    if (!n8nResponse.ok) {
-      return NextResponse.json(
-        { error: 'Error al contactar al agente IA' },
-        { status: 502 }
-      )
-    }
-
-    // Parse response
-    let assistantReply: string
-    const contentType = n8nResponse.headers.get('content-type')
-    if (contentType?.includes('application/json')) {
-      const data = await n8nResponse.json()
-      assistantReply = data.output || data.message || JSON.stringify(data)
-    } else {
-      assistantReply = await n8nResponse.text()
-    }
+    // Run local LangGraph agent
+    const assistantReply = isManager
+      ? await runManagerAgent(
+          user.id,
+          trimmed,
+          chatScope,
+          chatScope === 'vendedor' ? chatTargetUserId : null,
+          chatHistory
+        )
+      : await runVendedorAgent(user.id, trimmed, chatHistory)
 
     // Save assistant message
     const { error: saveAssistantError } = await supabase.from('chat_messages').insert({
@@ -193,7 +142,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ reply: assistantReply })
   } catch (error) {
-    console.error('Chat error:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('Chat error:', msg)
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === 'development' ? msg : 'Error interno del servidor' },
+      { status: 500 }
+    )
   }
 }
