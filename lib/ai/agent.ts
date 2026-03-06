@@ -488,10 +488,12 @@ export async function runVendedorAgent(
   const result = await agent.invoke({ messages })
   const last = result.messages[result.messages.length - 1]
 
-  const totalUsage = result.messages.reduce((acc: { input: number; output: number }, m: { usage_metadata?: { input_tokens?: number; output_tokens?: number } }) => {
-    if (m.usage_metadata) {
-      acc.input += m.usage_metadata.input_tokens ?? 0
-      acc.output += m.usage_metadata.output_tokens ?? 0
+  const totalUsage = result.messages.reduce((acc: { input: number; output: number }, m) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const meta = (m as any).usage_metadata
+    if (meta) {
+      acc.input += meta.input_tokens ?? 0
+      acc.output += meta.output_tokens ?? 0
     }
     return acc
   }, { input: 0, output: 0 })
@@ -524,10 +526,12 @@ export async function runManagerAgent(
   const result = await agent.invoke({ messages })
   const last = result.messages[result.messages.length - 1]
 
-  const totalUsage = result.messages.reduce((acc: { input: number; output: number }, m: { usage_metadata?: { input_tokens?: number; output_tokens?: number } }) => {
-    if (m.usage_metadata) {
-      acc.input += m.usage_metadata.input_tokens ?? 0
-      acc.output += m.usage_metadata.output_tokens ?? 0
+  const totalUsage = result.messages.reduce((acc: { input: number; output: number }, m) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const meta = (m as any).usage_metadata
+    if (meta) {
+      acc.input += meta.input_tokens ?? 0
+      acc.output += meta.output_tokens ?? 0
     }
     return acc
   }, { input: 0, output: 0 })

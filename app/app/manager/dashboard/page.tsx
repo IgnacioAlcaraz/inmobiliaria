@@ -45,7 +45,7 @@ export default async function ManagerDashboardPage() {
       .lte('fecha', endOfYear)
       .order('fecha', { ascending: false })
       .limit(500),
-    supabase.from('captaciones').select('id, user_id').in('user_id', vendedorIds).limit(500),
+    supabase.from('captaciones').select('*').in('user_id', vendedorIds).limit(500),
     supabase
       .from('trackeo')
       .select('*')
