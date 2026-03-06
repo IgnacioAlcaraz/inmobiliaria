@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 
   let captacionesQuery = supabase
     .from('captaciones')
-    .select('id, operacion, fecha_baja, fecha_cierre')
+    .select('*')
 
   let trackeoQuery = supabase
     .from('trackeo')
