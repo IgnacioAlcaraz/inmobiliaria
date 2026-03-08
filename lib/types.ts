@@ -128,11 +128,16 @@ export type FormaPago = 'Contado' | 'Credito aprobado' | 'Credito en tramite' | 
 export type SeguimientoPrioridad = 'Baja' | 'Media' | 'Alta'
 export type MotivacionOption = 'Mudanza' | 'Inversion' | 'Divorcio' | 'Herencia' | 'Ampliar' | 'Reducir' | 'Otro'
 
+export type ContactoClasificacion = 'A+' | 'A' | 'B' | 'C' | 'D'
+export type ContactoInstancia = 'contacto' | 'llamado' | 'prelisting' | 'reunion' | 'venta'
+
 export const CONTACTO_ESTADOS: ContactoEstado[] = ['Nuevo', 'Contactado', 'En reunion', 'Negociacion', 'Cerrado', 'Perdido']
 export const TIPO_CLIENTE_OPTIONS: TipoCliente[] = ['Comprador', 'Vendedor', 'Inversor', 'Alquiler', 'Tasacion', 'Permuta']
 export const FORMA_PAGO_OPTIONS: FormaPago[] = ['Contado', 'Credito aprobado', 'Credito en tramite', 'Necesita vender primero']
 export const MOTIVACION_OPTIONS: MotivacionOption[] = ['Mudanza', 'Inversion', 'Divorcio', 'Herencia', 'Ampliar', 'Reducir', 'Otro']
 export const PRIORIDAD_OPTIONS: SeguimientoPrioridad[] = ['Baja', 'Media', 'Alta']
+export const CONTACTO_CLASIFICACIONES: ContactoClasificacion[] = ['A+', 'A', 'B', 'C', 'D']
+export const CONTACTO_INSTANCIAS: ContactoInstancia[] = ['contacto', 'llamado', 'prelisting', 'reunion', 'venta']
 
 export interface Contacto {
   id: string
@@ -143,6 +148,8 @@ export interface Contacto {
   email: string | null
   ubicacion: string | null
   estado: ContactoEstado
+  clasificacion?: ContactoClasificacion | null
+  instancia?: ContactoInstancia
   tipo_cliente: TipoCliente | null
   forma_pago: FormaPago | null
   motivacion: MotivacionOption[]
@@ -157,6 +164,18 @@ export interface Contacto {
   // joined
   propiedades?: ContactoPropiedad[]
   tags?: ContactoTag[]
+}
+
+export interface ContactoInteraccion {
+  id: string
+  contacto_id: string
+  user_id: string
+  tipo: 'llamada' | 'prelisting' | 'reunion' | 'visita' | 'reserva' | 'cierre' | 'nota'
+  fecha: string
+  duracion?: number | null
+  resultado?: string | null
+  notas?: string | null
+  created_at: string
 }
 
 export interface ContactoPropiedad {

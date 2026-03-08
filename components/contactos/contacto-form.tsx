@@ -20,13 +20,15 @@ import {
 import { toast } from 'sonner'
 import { useState } from 'react'
 import { Plus, X, Search } from 'lucide-react'
-import type { Contacto, ContactoTag } from '@/lib/types'
+import type { Contacto, ContactoTag, ContactoClasificacion, ContactoInstancia } from '@/lib/types'
 import {
   CONTACTO_ESTADOS,
   TIPO_CLIENTE_OPTIONS,
   FORMA_PAGO_OPTIONS,
   MOTIVACION_OPTIONS,
   PRIORIDAD_OPTIONS,
+  CONTACTO_CLASIFICACIONES,
+  CONTACTO_INSTANCIAS,
 } from '@/lib/types'
 
 interface CaptacionOption {
@@ -79,6 +81,8 @@ export function ContactoForm({ contacto, tags, captaciones, userId, onSuccess }:
       email: contacto?.email || '',
       ubicacion: contacto?.ubicacion || '',
       estado: contacto?.estado || 'Nuevo',
+      clasificacion: contacto?.clasificacion || null,
+      instancia: contacto?.instancia || 'contacto',
       tipo_cliente: contacto?.tipo_cliente || null,
       forma_pago: contacto?.forma_pago || null,
       motivacion: contacto?.motivacion || [],
@@ -289,6 +293,39 @@ export function ContactoForm({ contacto, tags, captaciones, userId, onSuccess }:
               <SelectItem value="_none">Sin especificar</SelectItem>
               {TIPO_CLIENTE_OPTIONS.map((t) => (
                 <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1.5">
+          <Label>Clasificación</Label>
+          <Select
+            defaultValue={contacto?.clasificacion || '_none'}
+            onValueChange={(val) => setValue('clasificacion', val === '_none' ? null : (val as ContactoFormData['clasificacion']))}
+          >
+            <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">Sin especificar</SelectItem>
+              {CONTACTO_CLASIFICACIONES.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label>Instancia</Label>
+          <Select
+            defaultValue={contacto?.instancia || '_none'}
+            onValueChange={(val) => setValue('instancia', val === '_none' ? null : (val as ContactoFormData['instancia']))}
+          >
+            <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">Sin especificar</SelectItem>
+              {CONTACTO_INSTANCIAS.map((i) => (
+                <SelectItem key={i} value={i}>{i}</SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -44,11 +44,19 @@ const vendedorItems = [
 const encargadoItems = [
   { title: 'Dashboard', url: '/app/manager/dashboard', icon: LayoutDashboard },
   { title: 'Vendedores', url: '/app/manager/vendedores', icon: Users },
+  { title: 'Trackeo Global', url: '/app/manager/trackeo', icon: CalendarCheck },
+  { title: 'Tablero Gestión', url: '/app/manager/tablero', icon: Users },
+  { title: 'Captaciones vs Operaciones', url: '/app/manager/captaciones', icon: Building },
+  { title: 'OKR Global', url: '/app/manager/okr', icon: Target },
   { title: 'Chat IA', url: '/app/manager/chat', icon: MessageCircle },
 ]
 
 const adminItems = [
   { title: 'Administracion', url: '/app/admin', icon: ShieldCheck },
+  { title: 'Trackeo - Reservas vs Cierres', url: '/app/manager/trackeo', icon: CalendarCheck },
+  { title: 'Tablero Gestión', url: '/app/manager/tablero', icon: Users },
+  { title: 'Captaciones vs Operaciones', url: '/app/manager/captaciones', icon: Building },
+  { title: 'OKR Global', url: '/app/manager/okr', icon: Target },
 ]
 
 const roleConfig: Record<string, { label: string; className: string }> = {

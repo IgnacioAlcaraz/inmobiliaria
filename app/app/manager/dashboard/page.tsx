@@ -35,7 +35,15 @@ export default async function ManagerDashboardPage() {
   const startOfYear = `${year}-01-01`
   const endOfYear = `${year}-12-31`
 
-  const [vendedorProfilesRes, cierresRes, captacionesRes, trackeoRes] = await Promise.all([
+  const [
+    vendedorProfilesRes,
+    cierresRes,
+    captacionesRes,
+    trackeoRes,
+    trackeoDiarioRes,
+    captBusRes,
+    objetivosRes,
+  ] = await Promise.all([
     supabase.from('profiles').select('*').in('id', vendedorIds),
     supabase
       .from('cierres')
@@ -45,7 +53,9 @@ export default async function ManagerDashboardPage() {
       .lte('fecha', endOfYear)
       .order('fecha', { ascending: false })
       .limit(500),
+    // captaciones table (legacy)
     supabase.from('captaciones').select('*').in('user_id', vendedorIds).limit(500),
+    // trackeo (legacy)
     supabase
       .from('trackeo')
       .select('*')
@@ -54,7 +64,27 @@ export default async function ManagerDashboardPage() {
       .lte('fecha', endOfYear)
       .order('fecha', { ascending: false })
       .limit(500),
+    // additional: trackeo_diario for monthly aggregates
+    supabase
+      .from('trackeo_diario')
+      .select('*')
+      .in('user_id', vendedorIds)
+      .gte('fecha', startOfYear)
+      .lte('fecha', endOfYear)
+      .order('fecha', { ascending: false })
+      .limit(2000),
+    // captaciones_busquedas (detailed captaciones)
+    supabase
+      .from('captaciones_busquedas')
+      .select('*')
+      .in('user_id', vendedorIds)
+      .gte('fecha_alta', startOfYear)
+      .lte('fecha_alta', endOfYear)
+      .limit(2000),
+    // objetivos anuales for team
+    supabase.from('objetivos_anuales').select('*').in('user_id', vendedorIds).eq('year', year),
   ])
+  
 
   return (
     <div className="p-6">
@@ -63,6 +93,9 @@ export default async function ManagerDashboardPage() {
         cierres={cierresRes.data || []}
         captaciones={captacionesRes.data || []}
         trackeo={trackeoRes.data || []}
+        trackeoDiario={trackeoDiarioRes?.data || []}
+        captacionesBusquedas={captBusRes?.data || []}
+        objetivos={(objetivosRes?.data || [])}
         year={year}
       />
     </div>

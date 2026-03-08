@@ -18,10 +18,12 @@ export async function POST(req: NextRequest) {
     const estado = validEnum(body.estado, ['Nuevo', 'Contactado', 'En reunion', 'Negociacion', 'Cerrado', 'Perdido'] as const)
     const tipo_cliente = validEnum(body.tipo_cliente, ['Comprador', 'Vendedor', 'Inversor', 'Alquiler', 'Tasacion', 'Permuta'] as const)
     const prioridad = validEnum(body.prioridad, ['Baja', 'Media', 'Alta'] as const)
+    const clasificacion = validEnum(body.clasificacion, ['A+','A','B','C','D'] as const)
+    const instancia = validEnum(body.instancia, ['contacto','llamado','prelisting','reunion','venta'] as const)
 
     let query = supabase
       .from('contactos')
-      .select('id, nombre, apellido, telefono, email, estado, tipo_cliente, forma_pago, motivacion, notas, seguimiento_fecha, seguimiento_prioridad, seguimiento_hecho, created_at')
+      .select('id, nombre, apellido, telefono, email, estado, clasificacion, instancia, tipo_cliente, forma_pago, motivacion, notas, seguimiento_fecha, seguimiento_prioridad, seguimiento_hecho, created_at, updated_at')
       .eq('user_id', userId)
       .order('seguimiento_fecha', { ascending: true, nullsFirst: false })
       .limit(lim)
@@ -29,6 +31,8 @@ export async function POST(req: NextRequest) {
     if (estado) query = query.eq('estado', estado)
     if (tipo_cliente) query = query.eq('tipo_cliente', tipo_cliente)
     if (prioridad) query = query.eq('seguimiento_prioridad', prioridad)
+    if (clasificacion) query = query.eq('clasificacion', clasificacion)
+    if (instancia) query = query.eq('instancia', instancia)
 
     if (body.pendientes === true) query = query.eq('seguimiento_hecho', false)
 
@@ -42,7 +46,8 @@ export async function POST(req: NextRequest) {
     if (error) return agentError('Error al obtener contactos', 500)
 
     return agentSuccess(data || [], (data || []).length)
-  } catch {
+  } catch (err) {
+    console.error('contactos route error', err)
     return agentError('Error interno', 500)
   }
 }

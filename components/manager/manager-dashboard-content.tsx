@@ -42,6 +42,9 @@ interface ManagerDashboardContentProps {
   captaciones: Captacion[]
   trackeo: Trackeo[]
   year: number
+  trackeoDiario?: any[]
+  captacionesBusquedas?: any[]
+  objetivos?: any[]
 }
 
 const MONTH_NAMES = [
@@ -55,6 +58,9 @@ export function ManagerDashboardContent({
   captaciones,
   trackeo,
   year,
+  trackeoDiario = [],
+  captacionesBusquedas = [],
+  objetivos = [],
 }: ManagerDashboardContentProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>('all')
   const [selectedVendedor, setSelectedVendedor] = useState<string>('all')
@@ -131,6 +137,199 @@ export function ManagerDashboardContent({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Supervisor features moved to separate pages */}
+      <div>
+        <h2 className="text-lg font-semibold">Supervisor - Secciones</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-3">
+          <a href="/app/manager/trackeo" className="block p-4 border rounded hover:shadow">
+            <div className="font-medium">Trackeo RESERVAS VS CIERRES</div>
+            <div className="text-sm text-muted-foreground">Ver reservas, cierres y captaciones por mes</div>
+          </a>
+          <a href="/app/manager/tablero" className="block p-4 border rounded hover:shadow">
+            <div className="font-medium">Tablero de Gestión Inmobiliaria</div>
+            <div className="text-sm text-muted-foreground">Resumen por agente</div>
+          </a>
+          <a href="/app/manager/captaciones" className="block p-4 border rounded hover:shadow">
+            <div className="font-medium">Captaciones vs Operaciones 2026</div>
+            <div className="text-sm text-muted-foreground">Listado detallado de captaciones y cierres</div>
+          </a>
+          <a href="/app/manager/okr" className="block p-4 border rounded hover:shadow">
+            <div className="font-medium">OKR Global</div>
+            <div className="text-sm text-muted-foreground">Objetivos y cumplimiento trimestral</div>
+          </a>
+        </div>
+      </div>
+
+        {/* Tablero de Gestión Inmobiliaria por Agente (resumen por agente) */}
+        <div>
+          <h2 className="text-lg font-semibold">Tablero de Gestión Inmobiliaria por Agente</h2>
+          <div className="mt-3">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Agente</TableHead>
+                  <TableHead>Captaciones</TableHead>
+                  <TableHead>Cierres</TableHead>
+                  <TableHead>Honorarios</TableHead>
+                  <TableHead className="text-right">Reservas</TableHead>
+                  <TableHead className="text-right">Visitas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {vendedores.map((v) => {
+                  const vCaps = captacionesBusquedas.filter((c) => c.user_id === v.id)
+                  const vCierres = cierres.filter((c) => c.user_id === v.id)
+                  const vTrack = trackeoDiario.filter((t) => t.user_id === v.id)
+                  const honorarios = vCierres.reduce((s, c) => s + Number(c.honorarios_totales || 0), 0)
+                  const reservas = vTrack.reduce((s, t) => s + Number(t.reservas_puntas || 0), 0)
+                  const visitas = vTrack.reduce((s, t) => s + Number(t.visitas || 0), 0)
+                  return (
+                    <TableRow key={v.id}>
+                      <TableCell>{v.full_name}</TableCell>
+                      <TableCell>{vCaps.length}</TableCell>
+                      <TableCell>{vCierres.length}</TableCell>
+                      <TableCell>{formatCurrency(honorarios)}</TableCell>
+                      <TableCell className="text-right">{reservas}</TableCell>
+                      <TableCell className="text-right">{visitas}</TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* Captaciones y Búsquedas VS Operaciones Cerradas - año */}
+        <div>
+          <h2 className="text-lg font-semibold">CAPTACIONES Y BÚSQUEDAS VS OPERACIONES CERRADAS AÑO {year}</h2>
+          <div className="mt-3">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Fecha Alta</TableHead>
+                  <TableHead>Direccion</TableHead>
+                  <TableHead>Operacion</TableHead>
+                  <TableHead>Valor Publicado</TableHead>
+                  <TableHead>Fecha Cierre</TableHead>
+                  <TableHead>Honorarios</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {captacionesBusquedas.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>{c.id?.slice?.(0, 8) || '-'}</TableCell>
+                    <TableCell>{c.fecha_alta ? new Date(c.fecha_alta).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell>{c.direccion || '-'}</TableCell>
+                    <TableCell>{c.operacion || '-'}</TableCell>
+                    <TableCell>{formatCurrency(Number(c.valor_publicado || 0))}</TableCell>
+                    <TableCell>{c.fecha_cierre ? new Date(c.fecha_cierre).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell>{formatCurrency(Number(c.honorarios_totales || 0))}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* OKR Global */}
+        <div>
+          <h2 className="text-lg font-semibold">OKR Global - {year}</h2>
+          {/* compute objectives and achieved amounts */}
+          {
+            (() => {
+              // total objective (prefer objetivo_comisiones_brutas, fallback objetivo_facturacion_total)
+              const totalObjective = objetivos.reduce((s: number, o: any) => {
+                const val = Number(o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0)
+                return s + (isNaN(val) ? 0 : val)
+              }, 0)
+
+              // achieved honorarios and commissions for the team (full year)
+              const teamHonorarios = cierres.reduce((s, c) => s + cierreHon(c), 0)
+              const teamComisiones = cierres.reduce((s, c) => s + cierreCom(c), 0)
+              const ingresosNetos = teamHonorarios - teamComisiones
+
+              const progressPct = totalObjective > 0 ? Math.round((teamHonorarios / totalObjective) * 100) : 0
+
+              // quarterly breakdown (Q1..Q4)
+              const quarters = [0, 1, 2, 3].map((q) => {
+                const months = Array.from({ length: 3 }, (_, i) => q * 3 + i)
+                const honorarios = cierres
+                  .filter((c) => months.includes(new Date(c.fecha).getMonth()))
+                  .reduce((s, c) => s + cierreHon(c), 0)
+
+                // compute objective share for the quarter using peso_* fields when present
+                const objectiveShare = objetivos.reduce((s: number, o: any) => {
+                  // gather peso for months
+                  const pesoMonths = months.map((m) => Number(o[`peso_${MONTH_NAMES[m].toLowerCase()}`] ?? o[`peso_${m}`] ?? 0))
+                  const pesoSum = pesoMonths.reduce((a, b) => a + (isNaN(b) ? 0 : b), 0)
+                  const objVal = Number(o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0) || 0
+                  if (pesoSum > 0) {
+                    return s + (objVal * (pesoSum / 100))
+                  }
+                  return s + objVal / 4
+                }, 0)
+
+                return { quarter: `Q${q + 1}`, honorarios, objectiveShare }
+              })
+
+              return (
+                <div className="mt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader><CardTitle className="text-sm">Objetivo Honorarios Brutos (Equipo)</CardTitle></CardHeader>
+                      <CardContent>
+                        <p className="text-xl font-bold">{formatCurrency(totalObjective)}</p>
+                        <p className="text-sm text-muted-foreground mt-1">Meta anual sumada de vendedores</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader><CardTitle className="text-sm">Honorarios Brutos Obtenidos</CardTitle></CardHeader>
+                      <CardContent>
+                        <p className="text-xl font-bold">{formatCurrency(teamHonorarios)}</p>
+                        <p className="text-sm text-muted-foreground mt-1">Progreso: {progressPct}%</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader><CardTitle className="text-sm">Ingresos Netos</CardTitle></CardHeader>
+                      <CardContent>
+                        <p className="text-xl font-bold">{formatCurrency(ingresosNetos)}</p>
+                        <p className="text-sm text-muted-foreground mt-1">Honorarios - Comisiones agentes</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium">Desglose por Trimestre</h3>
+                    <Table className="mt-2">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Trimestre</TableHead>
+                          <TableHead>Objetivo</TableHead>
+                          <TableHead>Honorarios Obtenidos</TableHead>
+                          <TableHead>% Cumplimiento</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {quarters.map((q) => (
+                          <TableRow key={q.quarter}>
+                            <TableCell>{q.quarter}</TableCell>
+                            <TableCell>{formatCurrency(q.objectiveShare)}</TableCell>
+                            <TableCell>{formatCurrency(q.honorarios)}</TableCell>
+                            <TableCell>{q.objectiveShare > 0 ? `${Math.round((q.honorarios / q.objectiveShare) * 100)}%` : '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )
+            })()
+          }
+        </div>
+
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard Encargado</h1>
         <p className="text-sm text-muted-foreground">
