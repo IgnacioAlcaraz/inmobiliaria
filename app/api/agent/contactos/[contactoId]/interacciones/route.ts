@@ -5,12 +5,12 @@ import { validateAgentRequest, agentSuccess, agentError } from '@/lib/agent-auth
  * POST /api/agent/contactos/:contactoId/interacciones
  * Body: { userId, tipo, fecha?, duracion?, resultado?, notas? }
  */
-export async function POST(req: NextRequest, { params }: { params: { contactoId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ contactoId: string }> }) {
   const auth = await validateAgentRequest(req)
   if (!auth.ok) return auth.response
 
   const { supabase, userId, body } = auth
-  const contactoId = params.contactoId
+  const { contactoId } = await params
 
   try {
     const tipo = (body.tipo || '').toString()
