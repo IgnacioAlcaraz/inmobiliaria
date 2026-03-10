@@ -1,12 +1,13 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { validateAgentRequest, agentSuccess, agentError } from '@/lib/agent-auth'
 
 /**
  * POST /api/agent/contactos/:contactoId/interacciones
  * Body: { userId, tipo, fecha?, duracion?, resultado?, notas? }
  */
-export async function POST(req: NextRequest, { params }: { params: { contactoId: string } }) {
-  const auth = await validateAgentRequest(req)
+export async function POST(req: NextRequest, { params }: context: { params: { contactoId: string } | Promise<{ contactoId: string }> }) {
+  const params = await context.params;
+  const { contactoId } = params;
   if (!auth.ok) return auth.response
 
   const { supabase, userId, body } = auth
