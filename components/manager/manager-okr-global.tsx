@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import React, { useMemo, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import React, { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -9,95 +9,100 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from "@/components/ui/table";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion'
+} from "@/components/ui/accordion";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/export'
-import type { Profile } from '@/lib/types'
-import { ArrowUpDown } from 'lucide-react'
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/export";
+import { createClient } from "@/lib/supabase/client";
+import type { Profile } from "@/lib/types";
+import { ArrowUpDown, Pencil, Check, X } from "lucide-react";
+import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 interface OkrCierre {
-  id: string
-  user_id: string
-  fecha: string
-  valor_cierre: number
-  porcentaje_honorarios: number
-  porcentaje_agente: number
-  regalias?: number
-  director_monto?: number
-  martillero_monto?: number
-  created_at: string
-  captacion?: { operacion: string; direccion?: string } | null
+  id: string;
+  user_id: string;
+  fecha: string;
+  valor_cierre: number;
+  porcentaje_honorarios: number;
+  porcentaje_agente: number;
+  regalias?: number;
+  director_monto?: number;
+  martillero_monto?: number;
+  created_at: string;
+  captacion?: { operacion: string; direccion?: string } | null;
 }
 
 interface Props {
-  objetivos: any[]
-  cierres: OkrCierre[]
-  vendedores: Profile[]
-  year: number
+  objetivos: any[];
+  cierres: OkrCierre[];
+  vendedores: Profile[];
+  year: number;
+  managerId: string;
 }
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 interface ComputedRow {
-  id: string
-  agente: string
-  userId: string
-  operacion: string
-  pctHonorarios: number
-  valorCierre: number
-  honorarioBruto: number
-  regalias: number
-  honorarioNeto: number
-  director: number
-  martillero: number
-  pctComisionAgente: number
-  comisionAgente: number
-  ingresoNetoCentro: number
-  resultadoCentroAcumulado: number
-  fecha: string
-  createdAt: string
+  id: string;
+  agente: string;
+  userId: string;
+  operacion: string;
+  pctHonorarios: number;
+  valorCierre: number;
+  honorarioBruto: number;
+  regalias: number;
+  honorarioNeto: number;
+  director: number;
+  martillero: number;
+  pctComisionAgente: number;
+  comisionAgente: number;
+  ingresoNetoCentro: number;
+  resultadoCentroAcumulado: number;
+  fecha: string;
+  createdAt: string;
 }
 
 function computeRows(
   cierres: OkrCierre[],
   vendedoresMap: Map<string, string>,
 ): ComputedRow[] {
-  let acumulado = 0
+  let acumulado = 0;
   return cierres.map((c) => {
-    const pctHon = Number(c.porcentaje_honorarios) || 0
-    const valorCierre = Number(c.valor_cierre) || 0
-    const honorarioBruto = (valorCierre * pctHon) / 100
-    const regalias = Number(c.regalias) || 0
-    const honorarioNeto = honorarioBruto - regalias
-    const director = Number(c.director_monto) || 0
-    const martillero = Number(c.martillero_monto) || 0
-    const pctComision = Number(c.porcentaje_agente) || 0
-    const comisionAgente = (honorarioNeto * pctComision) / 100
-    const ingresoNetoCentro = honorarioNeto - comisionAgente - director - martillero
-    acumulado += ingresoNetoCentro
+    const pctHon = Number(c.porcentaje_honorarios) || 0;
+    const valorCierre = Number(c.valor_cierre) || 0;
+    const honorarioBruto = (valorCierre * pctHon) / 100;
+    const regalias = Number(c.regalias) || 0;
+    const honorarioNeto = honorarioBruto - regalias;
+    const director = Number(c.director_monto) || 0;
+    const martillero = Number(c.martillero_monto) || 0;
+    const pctComision = Number(c.porcentaje_agente) || 0;
+    const comisionAgente = (honorarioNeto * pctComision) / 100;
+    const ingresoNetoCentro =
+      honorarioNeto - comisionAgente - director - martillero;
+    acumulado += ingresoNetoCentro;
 
     return {
       id: c.id,
-      agente: vendedoresMap.get(c.user_id) || 'Sin nombre',
+      agente: vendedoresMap.get(c.user_id) || "Sin nombre",
       userId: c.user_id,
-      operacion: c.captacion?.operacion || '-',
+      operacion: c.captacion?.operacion || "-",
       pctHonorarios: pctHon,
       valorCierre,
       honorarioBruto,
@@ -111,20 +116,20 @@ function computeRows(
       resultadoCentroAcumulado: acumulado,
       fecha: c.fecha,
       createdAt: c.created_at,
-    }
-  })
+    };
+  });
 }
 
 interface Totals {
-  valorCierre: number
-  honorarioBruto: number
-  regalias: number
-  honorarioNeto: number
-  director: number
-  martillero: number
-  comisionAgente: number
-  ingresoNetoCentro: number
-  resultadoCentroAcumulado: number
+  valorCierre: number;
+  honorarioBruto: number;
+  regalias: number;
+  honorarioNeto: number;
+  director: number;
+  martillero: number;
+  comisionAgente: number;
+  ingresoNetoCentro: number;
+  resultadoCentroAcumulado: number;
 }
 
 function computeTotals(rows: ComputedRow[]): Totals {
@@ -138,19 +143,20 @@ function computeTotals(rows: ComputedRow[]): Totals {
     comisionAgente: 0,
     ingresoNetoCentro: 0,
     resultadoCentroAcumulado: 0,
-  }
+  };
   for (const r of rows) {
-    t.valorCierre += r.valorCierre
-    t.honorarioBruto += r.honorarioBruto
-    t.regalias += r.regalias
-    t.honorarioNeto += r.honorarioNeto
-    t.director += r.director
-    t.martillero += r.martillero
-    t.comisionAgente += r.comisionAgente
-    t.ingresoNetoCentro += r.ingresoNetoCentro
+    t.valorCierre += r.valorCierre;
+    t.honorarioBruto += r.honorarioBruto;
+    t.regalias += r.regalias;
+    t.honorarioNeto += r.honorarioNeto;
+    t.director += r.director;
+    t.martillero += r.martillero;
+    t.comisionAgente += r.comisionAgente;
+    t.ingresoNetoCentro += r.ingresoNetoCentro;
   }
-  t.resultadoCentroAcumulado = rows.length > 0 ? rows[rows.length - 1].resultadoCentroAcumulado : 0
-  return t
+  t.resultadoCentroAcumulado =
+    rows.length > 0 ? rows[rows.length - 1].resultadoCentroAcumulado : 0;
+  return t;
 }
 
 const QUARTER_MONTHS: number[][] = [
@@ -158,16 +164,20 @@ const QUARTER_MONTHS: number[][] = [
   [3, 4, 5],
   [6, 7, 8],
   [9, 10, 11],
-]
+];
 
-const OPERACION_OPTIONS = ['Venta', 'Alquiler', 'Temporario'] as const
+const OPERACION_OPTIONS = ["Venta", "Alquiler", "Temporario"] as const;
 
 /* ------------------------------------------------------------------ */
 /*  Sub-component: OKR Table (used by each quarter & annual)           */
 /* ------------------------------------------------------------------ */
 function OkrTable({ rows, totals }: { rows: ComputedRow[]; totals: Totals }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground py-4">Sin operaciones en este período.</p>
+    return (
+      <p className="text-sm text-muted-foreground py-4">
+        Sin operaciones en este período.
+      </p>
+    );
   }
 
   return (
@@ -177,17 +187,39 @@ function OkrTable({ rows, totals }: { rows: ComputedRow[]; totals: Totals }) {
           <TableRow>
             <TableHead className="whitespace-nowrap">Agente</TableHead>
             <TableHead className="whitespace-nowrap">Operación</TableHead>
-            <TableHead className="whitespace-nowrap text-right">% Honorarios</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Valor Cierre</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Honorario Bruto</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Regalías</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Honorario Neto</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Director</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Martillero</TableHead>
-            <TableHead className="whitespace-nowrap text-right">% Com. Agente</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Comisión Agente</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Ingreso Neto Centro</TableHead>
-            <TableHead className="whitespace-nowrap text-right">Resultado Centro Acum.</TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              % Honorarios
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Valor Cierre
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Honorario Bruto
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Regalías
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Honorario Neto
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Director
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Martillero
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              % Com. Agente
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Comisión Agente
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Ingreso Neto Centro
+            </TableHead>
+            <TableHead className="whitespace-nowrap text-right">
+              Resultado Centro Acum.
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -196,16 +228,34 @@ function OkrTable({ rows, totals }: { rows: ComputedRow[]; totals: Totals }) {
             <TableCell>TOTAL</TableCell>
             <TableCell>-</TableCell>
             <TableCell className="text-right">-</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.valorCierre)}</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.honorarioBruto)}</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.regalias)}</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.honorarioNeto)}</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.director)}</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.martillero)}</TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.valorCierre)}
+            </TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.honorarioBruto)}
+            </TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.regalias)}
+            </TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.honorarioNeto)}
+            </TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.director)}
+            </TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.martillero)}
+            </TableCell>
             <TableCell className="text-right">-</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.comisionAgente)}</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.ingresoNetoCentro)}</TableCell>
-            <TableCell className="text-right">{formatCurrency(totals.resultadoCentroAcumulado)}</TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.comisionAgente)}
+            </TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.ingresoNetoCentro)}
+            </TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(totals.resultadoCentroAcumulado)}
+            </TableCell>
           </TableRow>
 
           {/* Data rows */}
@@ -214,97 +264,192 @@ function OkrTable({ rows, totals }: { rows: ComputedRow[]; totals: Totals }) {
               <TableCell className="whitespace-nowrap">{r.agente}</TableCell>
               <TableCell>{r.operacion}</TableCell>
               <TableCell className="text-right">{r.pctHonorarios}%</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.valorCierre)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.honorarioBruto)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.regalias)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.honorarioNeto)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.director)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.martillero)}</TableCell>
-              <TableCell className="text-right">{r.pctComisionAgente}%</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.comisionAgente)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.ingresoNetoCentro)}</TableCell>
-              <TableCell className="text-right">{formatCurrency(r.resultadoCentroAcumulado)}</TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.valorCierre)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.honorarioBruto)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.regalias)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.honorarioNeto)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.director)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.martillero)}
+              </TableCell>
+              <TableCell className="text-right">
+                {r.pctComisionAgente}%
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.comisionAgente)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.ingresoNetoCentro)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.resultadoCentroAcumulado)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
 
 /* ------------------------------------------------------------------ */
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
-export function ManagerOkrGlobal({ objetivos, cierres, vendedores, year }: Props) {
+export function ManagerOkrGlobal({
+  objetivos,
+  cierres,
+  vendedores,
+  year,
+  managerId,
+}: Props) {
+  const supabase = createClient();
+
   /* Vendedores map for fast lookup */
   const vendedoresMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const v of vendedores) m.set(v.id, v.full_name || 'Sin nombre')
-    return m
-  }, [vendedores])
+    const m = new Map<string, string>();
+    for (const v of vendedores) m.set(v.id, v.full_name || "Sin nombre");
+    return m;
+  }, [vendedores]);
+
+  /* ----- Meta del Centro (editable) ----- */
+  const managerObjetivo = useMemo(
+    () => objetivos.find((o: any) => o.user_id === managerId) ?? null,
+    [objetivos, managerId],
+  );
+  const [editingMeta, setEditingMeta] = useState(false);
+  const [metaInput, setMetaInput] = useState(
+    String(
+      managerObjetivo?.objetivo_comisiones_brutas ??
+        managerObjetivo?.objetivo_facturacion_total ??
+        "",
+    ),
+  );
+  const [savingMeta, setSavingMeta] = useState(false);
+
+  async function handleSaveMeta() {
+    const value = parseFloat(metaInput.replace(",", "."));
+    if (!isFinite(value) || value < 0 || value > 1_000_000_000) {
+      toast.error("Ingresá un monto válido (entre 0 y 1.000.000.000)");
+      return;
+    }
+    setSavingMeta(true);
+    const { error } = await supabase.from("objetivos_anuales").upsert(
+      {
+        user_id: managerId,
+        year,
+        objetivo_comisiones_brutas: value,
+        objetivo_facturacion_total: value,
+      },
+      { onConflict: "user_id,year" },
+    );
+    setSavingMeta(false);
+    if (error) {
+      toast.error("Error al guardar: " + error.message);
+    } else {
+      toast.success("Meta del centro guardada");
+      setEditingMeta(false);
+    }
+  }
 
   /* ----- KPI calculations (kept from original) ----- */
-  const totalObjective = useMemo(() =>
-    objetivos.reduce((s: number, o: any) => {
-      const val = Number(o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0)
-      return s + (isNaN(val) ? 0 : val)
-    }, 0),
-  [objetivos])
+  const totalObjective = useMemo(
+    () =>
+      objetivos.reduce((s: number, o: any) => {
+        const val = Number(
+          o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0,
+        );
+        return s + (isNaN(val) ? 0 : val);
+      }, 0),
+    [objetivos],
+  );
 
-  const teamHonorarios = useMemo(() =>
-    cierres.reduce((s, c) => s + (Number(c.valor_cierre) * Number(c.porcentaje_honorarios) / 100), 0),
-  [cierres])
+  const teamHonorarios = useMemo(
+    () =>
+      cierres.reduce(
+        (s, c) =>
+          s + (Number(c.valor_cierre) * Number(c.porcentaje_honorarios)) / 100,
+        0,
+      ),
+    [cierres],
+  );
 
-  const teamComisiones = useMemo(() =>
-    cierres.reduce((s, c) => {
-      const hon = (Number(c.valor_cierre) * Number(c.porcentaje_honorarios) / 100)
-      return s + (hon * Number(c.porcentaje_agente) / 100)
-    }, 0),
-  [cierres])
+  const teamComisiones = useMemo(
+    () =>
+      cierres.reduce((s, c) => {
+        const hon =
+          (Number(c.valor_cierre) * Number(c.porcentaje_honorarios)) / 100;
+        return s + (hon * Number(c.porcentaje_agente)) / 100;
+      }, 0),
+    [cierres],
+  );
 
-  const ingresosNetos = teamHonorarios - teamComisiones
-  const progressPct = totalObjective > 0 ? Math.round((teamHonorarios / totalObjective) * 100) : 0
+  const ingresosNetos = teamHonorarios - teamComisiones;
+  const progressPct =
+    totalObjective > 0
+      ? Math.round((teamHonorarios / totalObjective) * 100)
+      : 0;
 
   /* ----- Quarterly data ----- */
-  const quarterData = useMemo(() =>
-    QUARTER_MONTHS.map((months, qi) => {
-      const qCierres = cierres
-        .filter((c) => months.includes(new Date(c.fecha).getMonth()))
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-      const rows = computeRows(qCierres, vendedoresMap)
-      const totals = computeTotals(rows)
-      return { label: `Q${qi + 1}`, rows, totals }
-    }),
-  [cierres, vendedoresMap])
+  const quarterData = useMemo(
+    () =>
+      QUARTER_MONTHS.map((months, qi) => {
+        const qCierres = cierres
+          .filter((c) => months.includes(new Date(c.fecha).getMonth()))
+          .sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime(),
+          );
+        const rows = computeRows(qCierres, vendedoresMap);
+        const totals = computeTotals(rows);
+        return { label: `Q${qi + 1}`, rows, totals };
+      }),
+    [cierres, vendedoresMap],
+  );
 
   /* ----- Annual data (with filters & sorting) ----- */
-  const [sortAsc, setSortAsc] = useState(true)
-  const [filterAgente, setFilterAgente] = useState('all')
-  const [filterOperacion, setFilterOperacion] = useState('all')
+  const [sortAsc, setSortAsc] = useState(true);
+  const [filterAgente, setFilterAgente] = useState("all");
+  const [filterOperacion, setFilterOperacion] = useState("all");
 
   const annualRows = useMemo(() => {
-    let filtered = [...cierres]
-    if (filterAgente !== 'all') filtered = filtered.filter((c) => c.user_id === filterAgente)
-    if (filterOperacion !== 'all') filtered = filtered.filter((c) => c.captacion?.operacion === filterOperacion)
+    let filtered = [...cierres];
+    if (filterAgente !== "all")
+      filtered = filtered.filter((c) => c.user_id === filterAgente);
+    if (filterOperacion !== "all")
+      filtered = filtered.filter(
+        (c) => c.captacion?.operacion === filterOperacion,
+      );
 
     filtered.sort((a, b) => {
-      const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      return sortAsc ? diff : -diff
-    })
+      const diff =
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return sortAsc ? diff : -diff;
+    });
 
-    return computeRows(filtered, vendedoresMap)
-  }, [cierres, vendedoresMap, sortAsc, filterAgente, filterOperacion])
+    return computeRows(filtered, vendedoresMap);
+  }, [cierres, vendedoresMap, sortAsc, filterAgente, filterOperacion]);
 
-  const annualTotals = useMemo(() => computeTotals(annualRows), [annualRows])
+  const annualTotals = useMemo(() => computeTotals(annualRows), [annualRows]);
 
   /* Unique operacion values from actual data */
   const uniqueOperaciones = useMemo(() => {
-    const ops = new Set<string>()
+    const ops = new Set<string>();
     for (const c of cierres) {
-      if (c.captacion?.operacion) ops.add(c.captacion.operacion)
+      if (c.captacion?.operacion) ops.add(c.captacion.operacion);
     }
-    return Array.from(ops).sort()
-  }, [cierres])
+    return Array.from(ops).sort();
+  }, [cierres]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -313,20 +458,95 @@ export function ManagerOkrGlobal({ objetivos, cierres, vendedores, year }: Props
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader><CardTitle className="text-sm">Objetivo Honorarios Brutos (Equipo)</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">
+                Objetivo Honorarios Brutos (Centro)
+              </CardTitle>
+              {!editingMeta && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => {
+                    setMetaInput(
+                      String(
+                        managerObjetivo?.objetivo_comisiones_brutas ??
+                          managerObjetivo?.objetivo_facturacion_total ??
+                          "",
+                      ),
+                    );
+                    setEditingMeta(true);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold">{formatCurrency(totalObjective)}</p>
+            {editingMeta ? (
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="number"
+                  min={0}
+                  value={metaInput}
+                  onChange={(e) => setMetaInput(e.target.value)}
+                  className="h-8 text-sm"
+                  placeholder="Ej: 500000"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  disabled={savingMeta}
+                  onClick={handleSaveMeta}
+                >
+                  <Check className="h-4 w-4 text-green-600" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => setEditingMeta(false)}
+                >
+                  <X className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xl font-bold">
+                  {totalObjective > 0 ? (
+                    formatCurrency(totalObjective)
+                  ) : (
+                    <span className="text-muted-foreground text-base">
+                      Sin meta (click lápiz)
+                    </span>
+                  )}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm">Honorarios Brutos Obtenidos</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-sm">
+              Honorarios Brutos Obtenidos
+            </CardTitle>
+          </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold">{formatCurrency(teamHonorarios)}</p>
-            <p className="text-sm text-muted-foreground mt-1">Progreso: {progressPct}%</p>
+            <p className="text-xl font-bold">
+              {formatCurrency(teamHonorarios)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Progreso: {progressPct}%
+            </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm">Ingresos Netos</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-sm">Ingresos Netos</CardTitle>
+          </CardHeader>
           <CardContent>
             <p className="text-xl font-bold">{formatCurrency(ingresosNetos)}</p>
           </CardContent>
@@ -369,20 +589,28 @@ export function ManagerOkrGlobal({ objetivos, cierres, vendedores, year }: Props
                   <SelectItem value="all">Todos los agentes</SelectItem>
                   {vendedores.map((v) => (
                     <SelectItem key={v.id} value={v.id}>
-                      {v.full_name || 'Sin nombre'}
+                      {v.full_name || "Sin nombre"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              <Select value={filterOperacion} onValueChange={setFilterOperacion}>
+              <Select
+                value={filterOperacion}
+                onValueChange={setFilterOperacion}
+              >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Operación" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las operaciones</SelectItem>
-                  {(uniqueOperaciones.length > 0 ? uniqueOperaciones : OPERACION_OPTIONS as unknown as string[]).map((op) => (
-                    <SelectItem key={op} value={op}>{op}</SelectItem>
+                  {(uniqueOperaciones.length > 0
+                    ? uniqueOperaciones
+                    : (OPERACION_OPTIONS as unknown as string[])
+                  ).map((op) => (
+                    <SelectItem key={op} value={op}>
+                      {op}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -394,7 +622,7 @@ export function ManagerOkrGlobal({ objetivos, cierres, vendedores, year }: Props
                 className="gap-1"
               >
                 <ArrowUpDown className="h-4 w-4" />
-                {sortAsc ? 'Más antigua primero' : 'Más nueva primero'}
+                {sortAsc ? "Más antigua primero" : "Más nueva primero"}
               </Button>
             </div>
 
@@ -403,5 +631,5 @@ export function ManagerOkrGlobal({ objetivos, cierres, vendedores, year }: Props
         </AccordionItem>
       </Accordion>
     </div>
-  )
+  );
 }

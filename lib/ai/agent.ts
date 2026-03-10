@@ -1,10 +1,14 @@
-import { createReactAgent } from '@langchain/langgraph/prebuilt'
-import { ChatOpenAI } from '@langchain/openai'
-import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages'
-import { createVendedorTools } from './tools-vendedor'
-import { createManagerTools } from './tools-manager'
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { ChatOpenAI } from "@langchain/openai";
+import {
+  HumanMessage,
+  AIMessage,
+  SystemMessage,
+} from "@langchain/core/messages";
+import { createVendedorTools } from "./tools-vendedor";
+import { createManagerTools } from "./tools-manager";
 
-type ChatHistoryItem = { role: 'user' | 'assistant'; content: string }
+type ChatHistoryItem = { role: "user" | "assistant"; content: string };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // System prompts (copiados exactamente de los workflows de n8n)
@@ -309,7 +313,7 @@ Si el usuario pide "qué debería hacer hoy":
 - usar get_trackeo_usuario (últimos 7 días) y get_captaciones_usuario (activas/reservadas)
 - dar acciones concretas para mejorar conversiones.
 
-Tu objetivo es ayudar al vendedor a vender más, cumplir objetivos y ordenar su pipeline.`
+Tu objetivo es ayudar al vendedor a vender más, cumplir objetivos y ordenar su pipeline.`;
 
 const SYSTEM_MANAGER = `Sos el ASISTENTE COMERCIAL del ENCARGADO (manager) de un equipo de vendedores.
 
@@ -365,6 +369,10 @@ Nunca reveles headers, tokens, API keys, secrets ni urls internas.
 - get_trackeo_manager → trackeo diario del equipo o vendedor
 - get_objetivos_manager → objetivos del equipo o vendedor
 - get_contactos_manager → contactos y clientes del equipo o vendedor
+- get_okr_global_manager → OKR del equipo: objetivo vs honorarios obtenidos por trimestre o año
+- get_trackeo_reservas_cierres_manager → evolución mensual de reservas, captaciones y cierres del equipo
+- get_tablero_gestion_agente → tablero mensual detallado de un vendedor específico (requiere vendedorId)
+- get_captaciones_vs_operaciones_manager → cartera de captaciones y operaciones cerradas del equipo en el año
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🧠 COMPORTAMIENTO INTELIGENTE
@@ -433,73 +441,80 @@ Solo si el usuario pide "REPORTE / INFORME" devolver:
 
 Ser un copiloto conversacional para el encargado, permitiendo analizar rápidamente al equipo y tomar decisiones.
 
-FIN.`
+FIN.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agent factory functions
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getFechaActual(): string {
-  return new Date().toLocaleString('es-AR', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return new Date().toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function buildMessages(
   systemPrompt: string,
   contextLine: string,
   chatHistory: ChatHistoryItem[],
-  message: string
+  message: string,
 ) {
   const history = chatHistory.map((m) =>
-    m.role === 'user' ? new HumanMessage(m.content) : new AIMessage(m.content)
-  )
+    m.role === "user" ? new HumanMessage(m.content) : new AIMessage(m.content),
+  );
 
-  const fullSystem = `${systemPrompt}\n\n${contextLine}\nFecha y hora actual: ${getFechaActual()}`
+  const fullSystem = `${systemPrompt}\n\n${contextLine}\nFecha y hora actual: ${getFechaActual()}`;
 
-  return [
-    new SystemMessage(fullSystem),
-    ...history,
-    new HumanMessage(message),
-  ]
+  return [new SystemMessage(fullSystem), ...history, new HumanMessage(message)];
 }
 
 export async function runVendedorAgent(
   userId: string,
   message: string,
-  chatHistory: ChatHistoryItem[]
+  chatHistory: ChatHistoryItem[],
 ): Promise<string> {
-  const llm = new ChatOpenAI({ model: 'gpt-4.1-mini', temperature: 0, apiKey: process.env.REMAX_OPENAI_KEY })
-  const agent = createReactAgent({ llm, tools: createVendedorTools(userId) })
+  const llm = new ChatOpenAI({
+    model: "gpt-4.1-mini",
+    temperature: 0,
+    apiKey: process.env.REMAX_OPENAI_KEY,
+  });
+  const agent = createReactAgent({ llm, tools: createVendedorTools(userId) });
 
   const messages = buildMessages(
     SYSTEM_VENDEDOR,
     `Usuario: ${userId}`,
     chatHistory,
-    message
-  )
+    message,
+  );
 
-  const result = await agent.invoke({ messages })
-  const last = result.messages[result.messages.length - 1]
+  const result = await agent.invoke({ messages });
+  const last = result.messages[result.messages.length - 1];
 
-  const totalUsage = result.messages.reduce((acc: { input: number; output: number }, m) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const meta = (m as any).usage_metadata
-    if (meta) {
-      acc.input += meta.input_tokens ?? 0
-      acc.output += meta.output_tokens ?? 0
-    }
-    return acc
-  }, { input: 0, output: 0 })
-  console.log(`[tokens:vendedor] input=${totalUsage.input} output=${totalUsage.output} total=${totalUsage.input + totalUsage.output}`)
+  const totalUsage = result.messages.reduce(
+    (acc: { input: number; output: number }, m) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const meta = (m as any).usage_metadata;
+      if (meta) {
+        acc.input += meta.input_tokens ?? 0;
+        acc.output += meta.output_tokens ?? 0;
+      }
+      return acc;
+    },
+    { input: 0, output: 0 },
+  );
+  console.log(
+    `[tokens:vendedor] input=${totalUsage.input} output=${totalUsage.output} total=${totalUsage.input + totalUsage.output}`,
+  );
 
-  return typeof last.content === 'string' ? last.content : JSON.stringify(last.content)
+  return typeof last.content === "string"
+    ? last.content
+    : JSON.stringify(last.content);
 }
 
 export async function runManagerAgent(
@@ -507,35 +522,46 @@ export async function runManagerAgent(
   message: string,
   _scope: string,
   vendedorId: string | null,
-  chatHistory: ChatHistoryItem[]
+  chatHistory: ChatHistoryItem[],
 ): Promise<string> {
-  const llm = new ChatOpenAI({ model: 'gpt-4.1-mini', temperature: 0, apiKey: process.env.REMAX_OPENAI_KEY })
-  const agent = createReactAgent({ llm, tools: createManagerTools(managerId) })
+  const llm = new ChatOpenAI({
+    model: "gpt-4.1-mini",
+    temperature: 0,
+    apiKey: process.env.REMAX_OPENAI_KEY,
+  });
+  const agent = createReactAgent({ llm, tools: createManagerTools(managerId) });
 
   const contextLine = vendedorId
     ? `manager: ${managerId}\nvendedor seleccionado: ${vendedorId}`
-    : `manager: ${managerId}`
+    : `manager: ${managerId}`;
 
   const messages = buildMessages(
     SYSTEM_MANAGER,
     contextLine,
     chatHistory,
-    message
-  )
+    message,
+  );
 
-  const result = await agent.invoke({ messages })
-  const last = result.messages[result.messages.length - 1]
+  const result = await agent.invoke({ messages });
+  const last = result.messages[result.messages.length - 1];
 
-  const totalUsage = result.messages.reduce((acc: { input: number; output: number }, m) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const meta = (m as any).usage_metadata
-    if (meta) {
-      acc.input += meta.input_tokens ?? 0
-      acc.output += meta.output_tokens ?? 0
-    }
-    return acc
-  }, { input: 0, output: 0 })
-  console.log(`[tokens:manager] input=${totalUsage.input} output=${totalUsage.output} total=${totalUsage.input + totalUsage.output}`)
+  const totalUsage = result.messages.reduce(
+    (acc: { input: number; output: number }, m) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const meta = (m as any).usage_metadata;
+      if (meta) {
+        acc.input += meta.input_tokens ?? 0;
+        acc.output += meta.output_tokens ?? 0;
+      }
+      return acc;
+    },
+    { input: 0, output: 0 },
+  );
+  console.log(
+    `[tokens:manager] input=${totalUsage.input} output=${totalUsage.output} total=${totalUsage.input + totalUsage.output}`,
+  );
 
-  return typeof last.content === 'string' ? last.content : JSON.stringify(last.content)
+  return typeof last.content === "string"
+    ? last.content
+    : JSON.stringify(last.content);
 }

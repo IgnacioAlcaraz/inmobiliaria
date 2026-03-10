@@ -1,67 +1,137 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+
+const postSchema = z.object({
+  user_id: z.string().uuid().optional().nullable(),
+  year: z.number().int().min(2000).max(2100),
+  month: z.number().int().min(1).max(12),
+  section: z.string().min(1).max(50),
+  key: z.string().min(1).max(100),
+  value: z.number().optional().nullable(),
+  text_value: z.string().max(1000).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+});
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
+  const supabase = await createClient();
   // managerId from cached user
-  const managerId = (await (await import('@/lib/supabase/queries')).getCurrentUser())?.id
-  if (!managerId) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  const managerId = (
+    await (await import("@/lib/supabase/queries")).getCurrentUser()
+  )?.id;
+  if (!managerId)
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  const { data, error } = await supabase.from('trackeo_manual').select('*').eq('manager_id', managerId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data })
+  const { data, error } = await supabase
+    .from("trackeo_manual")
+    .select("*")
+    .eq("manager_id", managerId);
+  if (error)
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  return NextResponse.json({ data });
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const supabase = await createClient()
-  const managerId = (await (await import('@/lib/supabase/queries')).getCurrentUser())?.id
-  if (!managerId) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  const body = await request.json();
+  const supabase = await createClient();
+  const managerId = (
+    await (await import("@/lib/supabase/queries")).getCurrentUser()
+  )?.id;
+  if (!managerId)
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  const payload = {
-    manager_id: managerId,
-    user_id: body.user_id ?? null,
-    year: body.year,
-    month: body.month,
-    section: body.section,
-    key: body.key,
-    value: body.value ?? null,
-    text_value: body.text_value ?? null,
-    notes: body.notes ?? null,
-  }
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
 
-  const { data, error } = await supabase.from('trackeo_manual').insert(payload).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data })
+  const payload = { manager_id: managerId, ...parsed.data };
+
+  const { data, error } = await supabase
+    .from("trackeo_manual")
+    .insert(payload)
+    .select()
+    .single();
+  if (error)
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  return NextResponse.json({ data });
 }
 
 export async function PUT(request: Request) {
-  const body = await request.json()
-  const supabase = await createClient()
-  const managerId = (await (await import('@/lib/supabase/queries')).getCurrentUser())?.id
-  if (!managerId) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  const body = await request.json();
+  const supabase = await createClient();
+  const managerId = (
+    await (await import("@/lib/supabase/queries")).getCurrentUser()
+  )?.id;
+  if (!managerId)
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  if (!body.id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
+  if (!z.string().uuid().safeParse(body.id).success)
+    return NextResponse.json({ error: "invalid id" }, { status: 400 });
 
-  const updates: any = {}
-  if (body.value !== undefined) updates.value = body.value
-  if (body.text_value !== undefined) updates.text_value = body.text_value
-  if (body.notes !== undefined) updates.notes = body.notes
+  const updates: Record<string, unknown> = {};
+  if (body.value !== undefined) {
+    const v = Number(body.value);
+    if (!isFinite(v))
+      return NextResponse.json({ error: "Invalid value" }, { status: 400 });
+    updates.value = v;
+  }
+  if (body.text_value !== undefined) {
+    if (typeof body.text_value !== "string" || body.text_value.length > 1000)
+      return NextResponse.json(
+        { error: "Invalid text_value" },
+        { status: 400 },
+      );
+    updates.text_value = body.text_value;
+  }
+  if (body.notes !== undefined) {
+    if (typeof body.notes !== "string" || body.notes.length > 2000)
+      return NextResponse.json({ error: "Invalid notes" }, { status: 400 });
+    updates.notes = body.notes;
+  }
 
-  const { data, error } = await supabase.from('trackeo_manual').update(updates).eq('id', body.id).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data })
+  const { data, error } = await supabase
+    .from("trackeo_manual")
+    .update(updates)
+    .eq("id", body.id)
+    .eq("manager_id", managerId)
+    .select()
+    .single();
+  if (error)
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  if (!data)
+    return NextResponse.json(
+      { error: "not found or not authorized" },
+      { status: 404 },
+    );
+  return NextResponse.json({ data });
 }
 
 export async function DELETE(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const id = searchParams.get('id')
-  const supabase = await createClient()
-  const managerId = (await (await import('@/lib/supabase/queries')).getCurrentUser())?.id
-  if (!managerId) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
-  if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  const supabase = await createClient();
+  const managerId = (
+    await (await import("@/lib/supabase/queries")).getCurrentUser()
+  )?.id;
+  if (!managerId)
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  if (!id || !z.string().uuid().safeParse(id).success)
+    return NextResponse.json({ error: "invalid id" }, { status: 400 });
 
-  const { error } = await supabase.from('trackeo_manual').delete().eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
+  const { error, count } = await supabase
+    .from("trackeo_manual")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("manager_id", managerId);
+  if (error)
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  if (count === 0)
+    return NextResponse.json(
+      { error: "not found or not authorized" },
+      { status: 404 },
+    );
+  return NextResponse.json({ ok: true });
 }

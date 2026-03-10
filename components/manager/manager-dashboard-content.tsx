@@ -1,9 +1,15 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { KpiCard } from '@/components/kpi-card'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useState } from "react";
+import { KpiCard } from "@/components/kpi-card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -11,11 +17,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { formatCurrency, formatNumber } from '@/lib/export'
-import { parseDateStr } from '@/lib/utils'
-import type { Profile, Cierre, Captacion, Trackeo } from '@/lib/types'
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency, formatNumber } from "@/lib/export";
+import { parseDateStr } from "@/lib/utils";
+import type { Profile, Cierre, Captacion, Trackeo } from "@/lib/types";
+import Link from "next/link";
 import {
   Users,
   Handshake,
@@ -24,7 +31,10 @@ import {
   Building,
   Phone,
   Eye,
-} from 'lucide-react'
+  LayoutGrid,
+  Target,
+  ArrowRight,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -33,24 +43,40 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts'
-import Link from 'next/link'
+} from "recharts";
 
 interface ManagerDashboardContentProps {
-  vendedores: Profile[]
-  cierres: (Cierre & { captacion?: { id: string; direccion: string; operacion: string; moneda: string } | null })[]
-  captaciones: Captacion[]
-  trackeo: Trackeo[]
-  year: number
-  trackeoDiario?: any[]
-  captacionesBusquedas?: any[]
-  objetivos?: any[]
+  vendedores: Profile[];
+  cierres: (Cierre & {
+    captacion?: {
+      id: string;
+      direccion: string;
+      operacion: string;
+      moneda: string;
+    } | null;
+  })[];
+  captaciones: Captacion[];
+  trackeo: Trackeo[];
+  year: number;
+  trackeoDiario?: any[];
+  captacionesBusquedas?: any[];
+  objetivos?: any[];
 }
 
 const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
 
 export function ManagerDashboardContent({
   vendedores,
@@ -62,231 +88,358 @@ export function ManagerDashboardContent({
   captacionesBusquedas = [],
   objetivos = [],
 }: ManagerDashboardContentProps) {
-  const [selectedMonth, setSelectedMonth] = useState<string>('all')
-  const [selectedVendedor, setSelectedVendedor] = useState<string>('all')
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [selectedVendedor, setSelectedVendedor] = useState<string>("all");
 
   const cierreHon = (c: Cierre) =>
-    (Number(c.valor_cierre) * Number(c.porcentaje_honorarios)) / 100
+    (Number(c.valor_cierre) * Number(c.porcentaje_honorarios)) / 100;
   const cierreCom = (c: Cierre) =>
-    (cierreHon(c) * Number(c.porcentaje_agente)) / 100
+    (cierreHon(c) * Number(c.porcentaje_agente)) / 100;
 
   // Filter by vendedor
-  const vCierres = selectedVendedor === 'all'
-    ? cierres
-    : cierres.filter((c) => c.user_id === selectedVendedor)
-  const vCaptaciones = selectedVendedor === 'all'
-    ? captaciones
-    : captaciones.filter((c) => c.user_id === selectedVendedor)
-  const vTrackeo = selectedVendedor === 'all'
-    ? trackeo
-    : trackeo.filter((t) => t.user_id === selectedVendedor)
+  const vCierres =
+    selectedVendedor === "all"
+      ? cierres
+      : cierres.filter((c) => c.user_id === selectedVendedor);
+  const vCaptaciones =
+    selectedVendedor === "all"
+      ? captaciones
+      : captaciones.filter((c) => c.user_id === selectedVendedor);
+  const vTrackeo =
+    selectedVendedor === "all"
+      ? trackeo
+      : trackeo.filter((t) => t.user_id === selectedVendedor);
 
   // Filter by month
-  const filteredCierres = selectedMonth === 'all'
-    ? vCierres
-    : vCierres.filter((c) => parseDateStr(c.fecha).month === Number(selectedMonth))
-  const filteredTrackeo = selectedMonth === 'all'
-    ? vTrackeo
-    : vTrackeo.filter((t) => parseDateStr(t.fecha).month === Number(selectedMonth))
+  const filteredCierres =
+    selectedMonth === "all"
+      ? vCierres
+      : vCierres.filter(
+          (c) => parseDateStr(c.fecha).month === Number(selectedMonth),
+        );
+  const filteredTrackeo =
+    selectedMonth === "all"
+      ? vTrackeo
+      : vTrackeo.filter(
+          (t) => parseDateStr(t.fecha).month === Number(selectedMonth),
+        );
 
   // KPIs
-  const totalHonorarios = filteredCierres.reduce((s, c) => s + cierreHon(c), 0)
-  const totalComisiones = filteredCierres.reduce((s, c) => s + cierreCom(c), 0)
-  const totalPuntas = filteredCierres.reduce((s, c) => s + c.puntas, 0)
-  const totalLlamadas = filteredTrackeo.reduce((s, t) => s + t.llamadas, 0)
-  const totalVisitas = filteredTrackeo.reduce((s, t) => s + t.visitas, 0)
+  const totalHonorarios = filteredCierres.reduce((s, c) => s + cierreHon(c), 0);
+  const totalComisiones = filteredCierres.reduce((s, c) => s + cierreCom(c), 0);
+  const totalPuntas = filteredCierres.reduce((s, c) => s + c.puntas, 0);
+  const totalLlamadas = filteredTrackeo.reduce((s, t) => s + t.llamadas, 0);
+  const totalVisitas = filteredTrackeo.reduce((s, t) => s + t.visitas, 0);
 
   // Vendedor ranking
-  const vendedorStats = vendedores.map((v) => {
-    const vc = filteredCierres.filter((c) => c.user_id === v.id)
-    const vcap = vCaptaciones.filter((c) => c.user_id === v.id)
-    const vt = filteredTrackeo.filter((t) => t.user_id === v.id)
-    const hon = vc.reduce((s, c) => s + cierreHon(c), 0)
-    const com = vc.reduce((s, c) => s + cierreCom(c), 0)
-    const puntas = vc.reduce((s, c) => s + c.puntas, 0)
-    return {
-      id: v.id,
-      name: v.full_name || 'Sin nombre',
-      cierres: vc.length,
-      honoriarios: hon,
-      comisiones: com,
-      puntas,
-      captaciones: vcap.length,
-      llamadas: vt.reduce((s, t) => s + t.llamadas, 0),
-      visitas: vt.reduce((s, t) => s + t.visitas, 0),
-    }
-  }).sort((a, b) => b.honoriarios - a.honoriarios)
+  const vendedorStats = vendedores
+    .map((v) => {
+      const vc = filteredCierres.filter((c) => c.user_id === v.id);
+      const vcap = vCaptaciones.filter((c) => c.user_id === v.id);
+      const vt = filteredTrackeo.filter((t) => t.user_id === v.id);
+      const hon = vc.reduce((s, c) => s + cierreHon(c), 0);
+      const com = vc.reduce((s, c) => s + cierreCom(c), 0);
+      const puntas = vc.reduce((s, c) => s + c.puntas, 0);
+      return {
+        id: v.id,
+        name: v.full_name || "Sin nombre",
+        cierres: vc.length,
+        honoriarios: hon,
+        comisiones: com,
+        puntas,
+        captaciones: vcap.length,
+        llamadas: vt.reduce((s, t) => s + t.llamadas, 0),
+        visitas: vt.reduce((s, t) => s + t.visitas, 0),
+      };
+    })
+    .sort((a, b) => b.honoriarios - a.honoriarios);
 
   // Chart: monthly honorarios
   const honByMonth = Array.from({ length: 12 }, (_, i) => {
-    const mCierres = vCierres.filter((c) => parseDateStr(c.fecha).month === i)
+    const mCierres = vCierres.filter((c) => parseDateStr(c.fecha).month === i);
     return {
       mes: MONTH_NAMES[i].substring(0, 3),
       honorarios: mCierres.reduce((s, c) => s + cierreHon(c), 0),
       comisiones: mCierres.reduce((s, c) => s + cierreCom(c), 0),
-    }
-  })
+    };
+  });
 
-  const periodLabel = selectedMonth === 'all'
-    ? `Anual ${year}`
-    : `${MONTH_NAMES[Number(selectedMonth)]} ${year}`
+  const periodLabel =
+    selectedMonth === "all"
+      ? `Anual ${year}`
+      : `${MONTH_NAMES[Number(selectedMonth)]} ${year}`;
 
-  const vendedorLabel = selectedVendedor === 'all'
-    ? 'Equipo completo'
-    : vendedores.find((v) => v.id === selectedVendedor)?.full_name || ''
+  const vendedorLabel =
+    selectedVendedor === "all"
+      ? "Equipo completo"
+      : vendedores.find((v) => v.id === selectedVendedor)?.full_name || "";
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Supervisor features moved to separate pages */}
+      {/* Accesos rápidos a secciones del supervisor */}
       <div>
-        <h2 className="text-lg font-semibold">Supervisor - Secciones</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-3">
-          <a href="/app/manager/trackeo" className="block p-4 border rounded hover:shadow">
-            <div className="font-medium">Trackeo RESERVAS VS CIERRES</div>
-            <div className="text-sm text-muted-foreground">Ver reservas, cierres y captaciones por mes</div>
-          </a>
-          <a href="/app/manager/tablero" className="block p-4 border rounded hover:shadow">
-            <div className="font-medium">Tablero de Gestión Inmobiliaria</div>
-            <div className="text-sm text-muted-foreground">Resumen por agente</div>
-          </a>
-          <a href="/app/manager/captaciones" className="block p-4 border rounded hover:shadow">
-            <div className="font-medium">Trackeo Cartera</div>
-            <div className="text-sm text-muted-foreground">Captaciones y búsquedas vs operaciones cerradas</div>
-          </a>
-          <a href="/app/manager/okr" className="block p-4 border rounded hover:shadow">
-            <div className="font-medium">OKR Global</div>
-            <div className="text-sm text-muted-foreground">Objetivos y cumplimiento trimestral</div>
-          </a>
+        <h2 className="text-lg font-semibold mb-3">Secciones del Supervisor</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+          <Link href="/app/manager/trackeo" className="group block">
+            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex items-start justify-between">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Trackeo Global</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Reservas, cierres y capital humano
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/app/manager/tablero" className="group block">
+            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex items-start justify-between">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <LayoutGrid className="h-4 w-4 text-primary" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Tablero de Gestión</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Resumen detallado por agente
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/app/manager/captaciones" className="group block">
+            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex items-start justify-between">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Building className="h-4 w-4 text-primary" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Trackeo Cartera</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Captaciones y operaciones cerradas
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/app/manager/okr" className="group block">
+            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex items-start justify-between">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <Target className="h-4 w-4 text-accent" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-accent transition-colors" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">OKR Global</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Objetivos y cumplimiento trimestral
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
 
-        {/* Tablero de Gestión Inmobiliaria por Agente (resumen por agente) */}
-        <div>
-          <h2 className="text-lg font-semibold">Tablero de Gestión Inmobiliaria por Agente</h2>
-          <div className="mt-3">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Agente</TableHead>
-                  <TableHead>Captaciones</TableHead>
-                  <TableHead>Cierres</TableHead>
-                  <TableHead>Honorarios</TableHead>
-                  <TableHead className="text-right">Reservas</TableHead>
-                  <TableHead className="text-right">Visitas</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vendedores.map((v) => {
-                  const vCaps = captacionesBusquedas.filter((c) => c.user_id === v.id)
-                  const vCierres = cierres.filter((c) => c.user_id === v.id)
-                  const vTrack = trackeoDiario.filter((t) => t.user_id === v.id)
-                  const honorarios = vCierres.reduce((s, c) => s + cierreHon(c), 0)
-                  const reservas = vTrack.reduce((s, t) => s + Number(t.reservas_puntas || 0), 0)
-                  const visitas = vTrack.reduce((s, t) => s + Number(t.visitas || 0), 0)
-                  return (
-                    <TableRow key={v.id}>
-                      <TableCell>{v.full_name}</TableCell>
-                      <TableCell>{vCaps.length}</TableCell>
-                      <TableCell>{vCierres.length}</TableCell>
-                      <TableCell>{formatCurrency(honorarios)}</TableCell>
-                      <TableCell className="text-right">{reservas}</TableCell>
-                      <TableCell className="text-right">{visitas}</TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-
-        {/* Captaciones y Búsquedas VS Operaciones Cerradas - año */}
-        <div>
-          <h2 className="text-lg font-semibold">CAPTACIONES Y BÚSQUEDAS VS OPERACIONES CERRADAS AÑO {year}</h2>
-          <div className="mt-3">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Fecha Alta</TableHead>
-                  <TableHead>Direccion</TableHead>
-                  <TableHead>Operacion</TableHead>
-                  <TableHead>Valor Publicado</TableHead>
-                  <TableHead>Fecha Cierre</TableHead>
-                  <TableHead>Honorarios</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {captacionesBusquedas.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{c.id?.slice?.(0, 8) || '-'}</TableCell>
-                    <TableCell>{c.fecha_alta ? new Date(c.fecha_alta).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>{c.direccion || '-'}</TableCell>
-                    <TableCell>{c.operacion || '-'}</TableCell>
-                    <TableCell>{formatCurrency(Number(c.valor_publicado || 0))}</TableCell>
-                    <TableCell>{c.fecha_cierre ? new Date(c.fecha_cierre).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>{formatCurrency(Number(c.honorarios_totales || 0))}</TableCell>
+      {/* Tablero de Gestión Inmobiliaria por Agente (resumen por agente) */}
+      <div>
+        <h2 className="text-lg font-semibold">
+          Tablero de Gestión Inmobiliaria por Agente
+        </h2>
+        <div className="mt-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Agente</TableHead>
+                <TableHead>Captaciones</TableHead>
+                <TableHead>Cierres</TableHead>
+                <TableHead>Honorarios</TableHead>
+                <TableHead className="text-right">Reservas</TableHead>
+                <TableHead className="text-right">Visitas</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vendedores.map((v) => {
+                const vCaps = captacionesBusquedas.filter(
+                  (c) => c.user_id === v.id,
+                );
+                const vCierres = cierres.filter((c) => c.user_id === v.id);
+                const vTrack = trackeoDiario.filter((t) => t.user_id === v.id);
+                const honorarios = vCierres.reduce(
+                  (s, c) => s + cierreHon(c),
+                  0,
+                );
+                const reservas = vTrack.reduce(
+                  (s, t) => s + Number(t.reservas_puntas || 0),
+                  0,
+                );
+                const visitas = vTrack.reduce(
+                  (s, t) => s + Number(t.visitas || 0),
+                  0,
+                );
+                return (
+                  <TableRow key={v.id}>
+                    <TableCell>{v.full_name}</TableCell>
+                    <TableCell>{vCaps.length}</TableCell>
+                    <TableCell>{vCierres.length}</TableCell>
+                    <TableCell>{formatCurrency(honorarios)}</TableCell>
+                    <TableCell className="text-right">{reservas}</TableCell>
+                    <TableCell className="text-right">{visitas}</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
+      </div>
 
-        {/* OKR Global - Summary with link to full page */}
-        <div>
-          <h2 className="text-lg font-semibold">OKR Global - {year}</h2>
-          {
-            (() => {
-              const totalObjective = objetivos.reduce((s: number, o: any) => {
-                const val = Number(o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0)
-                return s + (isNaN(val) ? 0 : val)
-              }, 0)
-
-              const teamHonorarios = cierres.reduce((s, c) => s + cierreHon(c), 0)
-              const teamComisiones = cierres.reduce((s, c) => s + cierreCom(c), 0)
-              const ingresosNetos = teamHonorarios - teamComisiones
-              const progressPct = totalObjective > 0 ? Math.round((teamHonorarios / totalObjective) * 100) : 0
-
-              return (
-                <div className="mt-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card>
-                      <CardHeader><CardTitle className="text-sm">Objetivo Honorarios Brutos (Equipo)</CardTitle></CardHeader>
-                      <CardContent>
-                        <p className="text-xl font-bold">{formatCurrency(totalObjective)}</p>
-                        <p className="text-sm text-muted-foreground mt-1">Meta anual sumada de vendedores</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader><CardTitle className="text-sm">Honorarios Brutos Obtenidos</CardTitle></CardHeader>
-                      <CardContent>
-                        <p className="text-xl font-bold">{formatCurrency(teamHonorarios)}</p>
-                        <p className="text-sm text-muted-foreground mt-1">Progreso: {progressPct}%</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader><CardTitle className="text-sm">Ingresos Netos</CardTitle></CardHeader>
-                      <CardContent>
-                        <p className="text-xl font-bold">{formatCurrency(ingresosNetos)}</p>
-                        <p className="text-sm text-muted-foreground mt-1">Honorarios - Comisiones agentes</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <div className="mt-3">
-                    <Link href="/app/manager/okr" className="text-sm text-primary hover:underline font-medium">
-                      Ver desglose completo por trimestre y operación →
-                    </Link>
-                  </div>
-                </div>
-              )
-            })()
-          }
+      {/* Captaciones y Búsquedas VS Operaciones Cerradas - año */}
+      <div>
+        <h2 className="text-lg font-semibold">
+          CAPTACIONES Y BÚSQUEDAS VS OPERACIONES CERRADAS AÑO {year}
+        </h2>
+        <div className="mt-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Fecha Alta</TableHead>
+                <TableHead>Direccion</TableHead>
+                <TableHead>Operacion</TableHead>
+                <TableHead>Valor Publicado</TableHead>
+                <TableHead>Fecha Cierre</TableHead>
+                <TableHead>Honorarios</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {captacionesBusquedas.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>{c.id?.slice?.(0, 8) || "-"}</TableCell>
+                  <TableCell>
+                    {c.fecha_alta
+                      ? new Date(c.fecha_alta).toLocaleDateString()
+                      : "-"}
+                  </TableCell>
+                  <TableCell>{c.direccion || "-"}</TableCell>
+                  <TableCell>{c.operacion || "-"}</TableCell>
+                  <TableCell>
+                    {formatCurrency(Number(c.valor_publicado || 0))}
+                  </TableCell>
+                  <TableCell>
+                    {c.fecha_cierre
+                      ? new Date(c.fecha_cierre).toLocaleDateString()
+                      : "-"}
+                  </TableCell>
+                  <TableCell>
+                    {formatCurrency(Number(c.honorarios_totales || 0))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
+      </div>
+
+      {/* OKR Global - Summary with link to full page */}
+      <div>
+        <h2 className="text-lg font-semibold">OKR Global - {year}</h2>
+        {(() => {
+          const totalObjective = objetivos.reduce((s: number, o: any) => {
+            const val = Number(
+              o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0,
+            );
+            return s + (isNaN(val) ? 0 : val);
+          }, 0);
+
+          const teamHonorarios = cierres.reduce((s, c) => s + cierreHon(c), 0);
+          const teamComisiones = cierres.reduce((s, c) => s + cierreCom(c), 0);
+          const ingresosNetos = teamHonorarios - teamComisiones;
+          const progressPct =
+            totalObjective > 0
+              ? Math.round((teamHonorarios / totalObjective) * 100)
+              : 0;
+
+          return (
+            <div className="mt-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">
+                      Objetivo Honorarios Brutos (Equipo)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(totalObjective)}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Meta anual sumada de vendedores
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">
+                      Honorarios Brutos Obtenidos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(teamHonorarios)}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Progreso: {progressPct}%
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Ingresos Netos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(ingresosNetos)}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Honorarios - Comisiones agentes
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="mt-3">
+                <Link
+                  href="/app/manager/okr"
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  Ver desglose completo por trimestre y operación →
+                </Link>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard Encargado</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          Dashboard Encargado
+        </h1>
         <p className="text-sm text-muted-foreground">
-          {vendedores.length} vendedores asignados - {vendedorLabel} - {periodLabel}
+          {vendedores.length} vendedores asignados - {vendedorLabel} -{" "}
+          {periodLabel}
         </p>
       </div>
 
@@ -300,7 +453,7 @@ export function ManagerDashboardContent({
             <SelectItem value="all">Equipo completo</SelectItem>
             {vendedores.map((v) => (
               <SelectItem key={v.id} value={v.id}>
-                {v.full_name || 'Sin nombre'}
+                {v.full_name || "Sin nombre"}
               </SelectItem>
             ))}
           </SelectContent>
@@ -313,7 +466,9 @@ export function ManagerDashboardContent({
           <SelectContent>
             <SelectItem value="all">Todo el anio {year}</SelectItem>
             {MONTH_NAMES.map((name, i) => (
-              <SelectItem key={i} value={String(i)}>{name}</SelectItem>
+              <SelectItem key={i} value={String(i)}>
+                {name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -321,7 +476,11 @@ export function ManagerDashboardContent({
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard title="Vendedores" value={String(vendedores.length)} icon={Users} />
+        <KpiCard
+          title="Vendedores"
+          value={String(vendedores.length)}
+          icon={Users}
+        />
         <KpiCard
           title="Cierres"
           value={String(filteredCierres.length)}
@@ -347,32 +506,62 @@ export function ManagerDashboardContent({
           value={String(vCaptaciones.length)}
           icon={Building}
         />
-        <KpiCard title="Llamadas" value={formatNumber(totalLlamadas)} icon={Phone} />
-        <KpiCard title="Visitas" value={formatNumber(totalVisitas)} icon={Eye} />
+        <KpiCard
+          title="Llamadas"
+          value={formatNumber(totalLlamadas)}
+          icon={Phone}
+        />
+        <KpiCard
+          title="Visitas"
+          value={formatNumber(totalVisitas)}
+          icon={Eye}
+        />
       </div>
 
       {/* Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Honorarios y Comisiones por Mes - {year}</CardTitle>
+          <CardTitle className="text-base">
+            Honorarios y Comisiones por Mes - {year}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {vCierres.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={honByMonth}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="mes" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  className="stroke-border"
+                />
+                <XAxis
+                  dataKey="mes"
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
+                <YAxis
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
                 <Tooltip
                   formatter={(value: number) => formatCurrency(value)}
                   contentStyle={{
-                    background: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 'var(--radius)',
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)",
                   }}
                 />
-                <Bar dataKey="honorarios" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} name="Honorarios" />
-                <Bar dataKey="comisiones" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} name="Comisiones" />
+                <Bar
+                  dataKey="honorarios"
+                  fill="hsl(var(--chart-1))"
+                  radius={[4, 4, 0, 0]}
+                  name="Honorarios"
+                />
+                <Bar
+                  dataKey="comisiones"
+                  fill="hsl(var(--chart-2))"
+                  radius={[4, 4, 0, 0]}
+                  name="Comisiones"
+                />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -384,7 +573,7 @@ export function ManagerDashboardContent({
       </Card>
 
       {/* Ranking table */}
-      {selectedVendedor === 'all' && (
+      {selectedVendedor === "all" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Ranking de Vendedores</CardTitle>
@@ -408,7 +597,10 @@ export function ManagerDashboardContent({
                   <TableRow key={v.id}>
                     <TableCell>
                       {i < 3 ? (
-                        <Badge variant={i === 0 ? 'default' : 'secondary'} className="w-6 h-6 flex items-center justify-center rounded-full p-0 text-xs">
+                        <Badge
+                          variant={i === 0 ? "default" : "secondary"}
+                          className="w-6 h-6 flex items-center justify-center rounded-full p-0 text-xs"
+                        >
                           {i + 1}
                         </Badge>
                       ) : (
@@ -425,9 +617,15 @@ export function ManagerDashboardContent({
                     </TableCell>
                     <TableCell className="text-right">{v.cierres}</TableCell>
                     <TableCell className="text-right">{v.puntas}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(v.honoriarios)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(v.comisiones)}</TableCell>
-                    <TableCell className="text-right">{v.captaciones}</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(v.honoriarios)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(v.comisiones)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {v.captaciones}
+                    </TableCell>
                     <TableCell className="text-right">{v.llamadas}</TableCell>
                   </TableRow>
                 ))}
@@ -437,5 +635,5 @@ export function ManagerDashboardContent({
         </Card>
       )}
     </div>
-  )
+  );
 }
