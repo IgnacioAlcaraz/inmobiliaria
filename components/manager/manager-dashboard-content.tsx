@@ -180,7 +180,7 @@ export function ManagerDashboardContent({
                   const vCaps = captacionesBusquedas.filter((c) => c.user_id === v.id)
                   const vCierres = cierres.filter((c) => c.user_id === v.id)
                   const vTrack = trackeoDiario.filter((t) => t.user_id === v.id)
-                  const honorarios = vCierres.reduce((s, c) => s + Number(c.honorarios_totales || 0), 0)
+                  const honorarios = vCierres.reduce((s, c) => s + cierreHon(c), 0)
                   const reservas = vTrack.reduce((s, t) => s + Number(t.reservas_puntas || 0), 0)
                   const visitas = vTrack.reduce((s, t) => s + Number(t.visitas || 0), 0)
                   return (

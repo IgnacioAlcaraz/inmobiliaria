@@ -111,7 +111,7 @@ export const contactoSchema = z.object({
   ubicacion: z.string().optional().nullable(),
   estado: z.enum(['Nuevo', 'Contactado', 'En reunion', 'Negociacion', 'Cerrado', 'Perdido']).default('Nuevo'),
   clasificacion: z.enum(['A+','A','B','C','D']).optional().nullable(),
-  instancia: z.enum(['contacto','llamado','prelisting','reunion','venta']).default('contacto'),
+  instancia: z.enum(['contacto','llamado','prelisting','reunion','venta']).nullable().default('contacto'),
   tipo_cliente: z.enum(['Comprador', 'Vendedor', 'Inversor', 'Alquiler', 'Tasacion', 'Permuta']).optional().nullable(),
   forma_pago: z.enum(['Contado', 'Credito aprobado', 'Credito en tramite', 'Necesita vender primero']).optional().nullable(),
   motivacion: z.array(z.string()).default([]),
