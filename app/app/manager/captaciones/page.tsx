@@ -21,17 +21,25 @@ export default async function Page() {
   const startOfYear = `${year}-01-01`
   const endOfYear = `${year}-12-31`
 
-  const { data: captBus } = await supabase
-    .from('captaciones_busquedas')
-    .select('*')
-    .in('user_id', vendedorIds)
-    .gte('fecha_alta', startOfYear)
-    .lte('fecha_alta', endOfYear)
-    .limit(2000)
+  const [vendedoresRes, captBusRes] = await Promise.all([
+    supabase.from('profiles').select('*').in('id', vendedorIds),
+    supabase
+      .from('captaciones_busquedas')
+      .select('*')
+      .in('user_id', vendedorIds)
+      .gte('fecha_alta', startOfYear)
+      .lte('fecha_alta', endOfYear)
+      .order('fecha_alta', { ascending: false })
+      .limit(5000),
+  ])
 
   return (
     <div className="p-6">
-      <ManagerCaptacionesVsOperaciones captacionesBusquedas={captBus || []} />
+      <ManagerCaptacionesVsOperaciones
+        captacionesBusquedas={captBusRes.data || []}
+        vendedores={vendedoresRes.data || []}
+        year={year}
+      />
     </div>
   )
 }

@@ -150,8 +150,8 @@ export function ManagerDashboardContent({
             <div className="text-sm text-muted-foreground">Resumen por agente</div>
           </a>
           <a href="/app/manager/captaciones" className="block p-4 border rounded hover:shadow">
-            <div className="font-medium">Captaciones vs Operaciones 2026</div>
-            <div className="text-sm text-muted-foreground">Listado detallado de captaciones y cierres</div>
+            <div className="font-medium">Trackeo Cartera</div>
+            <div className="text-sm text-muted-foreground">Captaciones y búsquedas vs operaciones cerradas</div>
           </a>
           <a href="/app/manager/okr" className="block p-4 border rounded hover:shadow">
             <div className="font-medium">OKR Global</div>
@@ -232,46 +232,20 @@ export function ManagerDashboardContent({
           </div>
         </div>
 
-        {/* OKR Global */}
+        {/* OKR Global - Summary with link to full page */}
         <div>
           <h2 className="text-lg font-semibold">OKR Global - {year}</h2>
-          {/* compute objectives and achieved amounts */}
           {
             (() => {
-              // total objective (prefer objetivo_comisiones_brutas, fallback objetivo_facturacion_total)
               const totalObjective = objetivos.reduce((s: number, o: any) => {
                 const val = Number(o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0)
                 return s + (isNaN(val) ? 0 : val)
               }, 0)
 
-              // achieved honorarios and commissions for the team (full year)
               const teamHonorarios = cierres.reduce((s, c) => s + cierreHon(c), 0)
               const teamComisiones = cierres.reduce((s, c) => s + cierreCom(c), 0)
               const ingresosNetos = teamHonorarios - teamComisiones
-
               const progressPct = totalObjective > 0 ? Math.round((teamHonorarios / totalObjective) * 100) : 0
-
-              // quarterly breakdown (Q1..Q4)
-              const quarters = [0, 1, 2, 3].map((q) => {
-                const months = Array.from({ length: 3 }, (_, i) => q * 3 + i)
-                const honorarios = cierres
-                  .filter((c) => months.includes(new Date(c.fecha).getMonth()))
-                  .reduce((s, c) => s + cierreHon(c), 0)
-
-                // compute objective share for the quarter using peso_* fields when present
-                const objectiveShare = objetivos.reduce((s: number, o: any) => {
-                  // gather peso for months
-                  const pesoMonths = months.map((m) => Number(o[`peso_${MONTH_NAMES[m].toLowerCase()}`] ?? o[`peso_${m}`] ?? 0))
-                  const pesoSum = pesoMonths.reduce((a, b) => a + (isNaN(b) ? 0 : b), 0)
-                  const objVal = Number(o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0) || 0
-                  if (pesoSum > 0) {
-                    return s + (objVal * (pesoSum / 100))
-                  }
-                  return s + objVal / 4
-                }, 0)
-
-                return { quarter: `Q${q + 1}`, honorarios, objectiveShare }
-              })
 
               return (
                 <div className="mt-3">
@@ -283,7 +257,6 @@ export function ManagerDashboardContent({
                         <p className="text-sm text-muted-foreground mt-1">Meta anual sumada de vendedores</p>
                       </CardContent>
                     </Card>
-
                     <Card>
                       <CardHeader><CardTitle className="text-sm">Honorarios Brutos Obtenidos</CardTitle></CardHeader>
                       <CardContent>
@@ -291,7 +264,6 @@ export function ManagerDashboardContent({
                         <p className="text-sm text-muted-foreground mt-1">Progreso: {progressPct}%</p>
                       </CardContent>
                     </Card>
-
                     <Card>
                       <CardHeader><CardTitle className="text-sm">Ingresos Netos</CardTitle></CardHeader>
                       <CardContent>
@@ -300,29 +272,10 @@ export function ManagerDashboardContent({
                       </CardContent>
                     </Card>
                   </div>
-
-                  <div className="mt-4">
-                    <h3 className="text-sm font-medium">Desglose por Trimestre</h3>
-                    <Table className="mt-2">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Trimestre</TableHead>
-                          <TableHead>Objetivo</TableHead>
-                          <TableHead>Honorarios Obtenidos</TableHead>
-                          <TableHead>% Cumplimiento</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {quarters.map((q) => (
-                          <TableRow key={q.quarter}>
-                            <TableCell>{q.quarter}</TableCell>
-                            <TableCell>{formatCurrency(q.objectiveShare)}</TableCell>
-                            <TableCell>{formatCurrency(q.honorarios)}</TableCell>
-                            <TableCell>{q.objectiveShare > 0 ? `${Math.round((q.honorarios / q.objectiveShare) * 100)}%` : '-'}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <div className="mt-3">
+                    <Link href="/app/manager/okr" className="text-sm text-primary hover:underline font-medium">
+                      Ver desglose completo por trimestre y operación →
+                    </Link>
                   </div>
                 </div>
               )

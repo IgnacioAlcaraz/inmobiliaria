@@ -64,6 +64,9 @@ export interface Cierre {
   porcentaje_agente: number
   puntas: number
   notas: string | null
+  regalias: number
+  director_monto: number
+  martillero_monto: number
   created_at: string
   // joined fields (Supabase returns null when join has no match)
   captacion?: Captacion | null

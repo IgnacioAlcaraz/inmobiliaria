@@ -23,7 +23,8 @@ export default async function Page() {
 
   const [vendedoresRes, captBusRes, cierresRes, trackeoDiarioRes] = await Promise.all([
     supabase.from('profiles').select('*').in('id', vendedorIds),
-    supabase.from('captaciones_busquedas').select('*').in('user_id', vendedorIds).gte('fecha_alta', startOfYear).lte('fecha_alta', endOfYear).limit(2000),
+    // Fetch all captaciones (not just current year) to compute cartera activa correctly
+    supabase.from('captaciones_busquedas').select('*').in('user_id', vendedorIds).lte('fecha_alta', endOfYear).limit(5000),
     supabase.from('cierres').select('*').in('user_id', vendedorIds).gte('fecha', startOfYear).lte('fecha', endOfYear).limit(500),
     supabase.from('trackeo_diario').select('*').in('user_id', vendedorIds).gte('fecha', startOfYear).lte('fecha', endOfYear).limit(2000),
   ])
@@ -35,6 +36,7 @@ export default async function Page() {
         captacionesBusquedas={captBusRes.data || []}
         cierres={cierresRes.data || []}
         trackeoDiario={trackeoDiarioRes.data || []}
+        year={year}
       />
     </div>
   )

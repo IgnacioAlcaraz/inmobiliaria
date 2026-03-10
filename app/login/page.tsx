@@ -30,12 +30,27 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
       if (error) throw error
-      router.push('/app/dashboard')
+
+      // Redirect to the correct page based on user role to avoid
+      // layout redirect loops during RSC navigation
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+
+      if (profile?.role === 'encargado') {
+        router.push('/app/manager/dashboard')
+      } else if (profile?.role === 'admin') {
+        router.push('/app/admin')
+      } else {
+        router.push('/app/dashboard')
+      }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Error al iniciar sesión')
     } finally {

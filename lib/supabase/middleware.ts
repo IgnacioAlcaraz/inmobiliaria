@@ -2,6 +2,12 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // Set pathname as a REQUEST header so server components can read it via headers()
+  // (response headers are NOT available to headers() in server components)
+  request.headers.set('x-pathname', pathname)
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -36,8 +42,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname
-
   // Redirect unauthenticated users trying to access the app
   if (pathname.startsWith('/app') && !user) {
     const url = request.nextUrl.clone()
@@ -51,11 +55,6 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/app/dashboard'
     return NextResponse.redirect(url)
-  }
-
-  // Pass pathname header for layout to read
-  if (user && pathname.startsWith('/app')) {
-    supabaseResponse.headers.set('x-pathname', pathname)
   }
 
   // Security headers
