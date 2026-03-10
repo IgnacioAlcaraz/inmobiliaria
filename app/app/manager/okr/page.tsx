@@ -31,7 +31,7 @@ export default async function Page() {
       .order('created_at', { ascending: true })
       .limit(500),
     supabase.from('objetivos_anuales').select('*').in('user_id', vendedorIds).eq('year', year),
-    supabase.from('profiles').select('id, full_name, role').in('id', vendedorIds),
+    supabase.from('profiles').select('id, full_name, role, created_at').in('id', vendedorIds),
   ])
 
   return (
