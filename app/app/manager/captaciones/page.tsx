@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentProfile } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/server'
 import { ManagerCaptacionesVsOperaciones } from '@/components/manager/manager-captaciones-vs-operaciones'
+import { AppHeader } from '@/components/app-header'
 
 export default async function Page() {
   const user = await getCurrentUser()
@@ -27,19 +28,20 @@ export default async function Page() {
       .from('captaciones_busquedas')
       .select('*')
       .in('user_id', vendedorIds)
-      .gte('fecha_alta', startOfYear)
-      .lte('fecha_alta', endOfYear)
       .order('fecha_alta', { ascending: false })
       .limit(5000),
   ])
 
   return (
-    <div className="p-6">
-      <ManagerCaptacionesVsOperaciones
-        captacionesBusquedas={captBusRes.data || []}
-        vendedores={vendedoresRes.data || []}
-        year={year}
-      />
-    </div>
+    <>
+      <AppHeader title="Trackeo Cartera" />
+      <div className="p-4 lg:p-6">
+        <ManagerCaptacionesVsOperaciones
+          captacionesBusquedas={captBusRes.data || []}
+          vendedores={vendedoresRes.data || []}
+          year={year}
+        />
+      </div>
+    </>
   )
 }

@@ -233,6 +233,10 @@ export interface Contacto {
   seguimiento_recordatorio: boolean;
   seguimiento_prioridad: SeguimientoPrioridad;
   seguimiento_hecho: boolean;
+
+
+
+  
   estado_changed_at: string | null;
   created_at: string;
   updated_at: string;

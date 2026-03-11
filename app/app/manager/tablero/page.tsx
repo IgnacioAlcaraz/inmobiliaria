@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, getCurrentProfile } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ManagerTableroGestion } from "@/components/manager/manager-tablero-gestion";
+import { AppHeader } from "@/components/app-header";
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -52,14 +53,17 @@ export default async function Page() {
     ]);
 
   return (
-    <div className="p-6">
-      <ManagerTableroGestion
-        vendedores={vendedoresRes.data || []}
-        captacionesBusquedas={captBusRes.data || []}
-        cierres={cierresRes.data || []}
-        trackeoDiario={trackeoDiarioRes.data || []}
-        year={year}
-      />
-    </div>
+    <>
+      <AppHeader title="Tablero Gestión" />
+      <div className="p-4 lg:p-6">
+        <ManagerTableroGestion
+          vendedores={vendedoresRes.data || []}
+          captacionesBusquedas={captBusRes.data || []}
+          cierres={cierresRes.data || []}
+          trackeoDiario={trackeoDiarioRes.data || []}
+          year={year}
+        />
+      </div>
+    </>
   );
 }

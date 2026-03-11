@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, Send, Trash2, Bot, User } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,6 +22,7 @@ export function ManagerChatContent({ initialMessages, vendedores }: ManagerChatC
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null)
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -138,8 +140,6 @@ export function ManagerChatContent({ initialMessages, vendedores }: ManagerChatC
   }
 
   const handleClearHistory = async () => {
-    if (!confirm('¿Seguro que quieres borrar el historial de este chat?')) return
-
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -179,7 +179,7 @@ export function ManagerChatContent({ initialMessages, vendedores }: ManagerChatC
   const selectedVendedorName = vendedores.find((v) => v.id === selectedVendedor)?.full_name || 'Equipo completo'
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Vendedor selector */}
       <div className="border-b p-4 flex items-center justify-between gap-4">
         <div className="flex-1">
@@ -197,7 +197,7 @@ export function ManagerChatContent({ initialMessages, vendedores }: ManagerChatC
             </SelectContent>
           </Select>
         </div>
-        <Button variant="outline" size="sm" onClick={handleClearHistory}>
+        <Button variant="outline" size="sm" onClick={() => setConfirmClearOpen(true)}>
           <Trash2 className="h-4 w-4 mr-2" />
           Borrar historial
         </Button>
@@ -257,12 +257,20 @@ export function ManagerChatContent({ initialMessages, vendedores }: ManagerChatC
             className="min-h-[60px] resize-none"
             disabled={loading}
           />
-          <Button type="submit" disabled={!input.trim() || loading} size="icon" className="self-end">
+          <Button type="submit" disabled={!input.trim() || loading} size="icon" aria-label="Enviar mensaje" className="self-end">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">Enter para enviar, Shift+Enter para nueva línea</p>
       </form>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        onOpenChange={setConfirmClearOpen}
+        title="Borrar historial"
+        description="Esta accion eliminara el historial de este chat permanentemente."
+        onConfirm={handleClearHistory}
+      />
     </div>
   )
 }

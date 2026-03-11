@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentProfile } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/server'
 import { ManagerDashboardContent } from '@/components/manager/manager-dashboard-content'
+import { AppHeader } from '@/components/app-header'
 import type { Profile } from '@/lib/types'
 
 export default async function ManagerDashboardPage() {
@@ -24,10 +25,12 @@ export default async function ManagerDashboardPage() {
 
   if (vendedorIds.length === 0) {
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Dashboard Encargado</h1>
-        <p className="text-muted-foreground">No tienes vendedores asignados. Contacta al administrador.</p>
-      </div>
+      <>
+        <AppHeader title="Dashboard" />
+        <div className="p-4 lg:p-6">
+          <p className="text-muted-foreground">No tienes vendedores asignados. Contacta al administrador.</p>
+        </div>
+      </>
     )
   }
 
@@ -82,12 +85,14 @@ export default async function ManagerDashboardPage() {
       .lte('fecha_alta', endOfYear)
       .limit(2000),
     // objetivos anuales for team
-    supabase.from('objetivos_anuales').select('*').in('user_id', vendedorIds).eq('year', year),
+    supabase.from('objetivos_anuales').select('*').in('user_id', [...vendedorIds, user.id]).eq('year', year),
   ])
   
 
   return (
-    <div className="p-6">
+    <>
+      <AppHeader title="Dashboard" />
+      <div className="p-4 lg:p-6">
       <ManagerDashboardContent
         vendedores={(vendedorProfilesRes.data || []) as Profile[]}
         cierres={cierresRes.data || []}
@@ -98,6 +103,7 @@ export default async function ManagerDashboardPage() {
         objetivos={(objetivosRes?.data || [])}
         year={year}
       />
-    </div>
+      </div>
+    </>
   )
 }

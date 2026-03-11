@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "clean-code": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "89a0d403e495dc3e94ab2b2fa55f54a51b5971f994900c27fc88006f1b83e3c0"
+    },
     "langchain-architecture": {
       "source": "wshobson/agents",
       "sourceType": "github",

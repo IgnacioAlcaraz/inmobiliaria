@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { createClient } from '@/lib/supabase/client'
 import type { ChatMessage } from '@/lib/types'
 import { Send, Trash2, Bot, User, Loader2 } from 'lucide-react'
@@ -18,6 +19,7 @@ export function ChatContent({ initialMessages }: ChatContentProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -86,8 +88,6 @@ export function ChatContent({ initialMessages }: ChatContentProps) {
   }
 
   const handleClearHistory = async () => {
-    if (!confirm('Borrar todo el historial de chat?')) return
-
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -108,27 +108,21 @@ export function ChatContent({ initialMessages }: ChatContentProps) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Chat IA</h1>
-          <p className="text-sm text-muted-foreground">
-            Agente inmobiliario inteligente conectado a n8n
-          </p>
-        </div>
-        {messages.length > 0 && (
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      {/* Actions bar */}
+      {messages.length > 0 && (
+        <div className="flex items-center justify-end px-6 py-2 border-b border-border">
           <Button
             variant="outline"
             size="sm"
-            onClick={handleClearHistory}
+            onClick={() => setConfirmClearOpen(true)}
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4 mr-1" />
             Borrar historial
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
@@ -216,6 +210,7 @@ export function ChatContent({ initialMessages }: ChatContentProps) {
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             size="icon"
+            aria-label="Enviar mensaje"
             className="h-12 w-12 flex-shrink-0"
           >
             {isLoading ? (
@@ -226,6 +221,14 @@ export function ChatContent({ initialMessages }: ChatContentProps) {
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        onOpenChange={setConfirmClearOpen}
+        title="Borrar historial"
+        description="Esta accion eliminara todo el historial de chat permanentemente."
+        onConfirm={handleClearHistory}
+      />
     </div>
   )
 }

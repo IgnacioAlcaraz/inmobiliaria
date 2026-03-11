@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { KpiCard } from "@/components/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatNumber } from "@/lib/export";
 import { parseDateStr } from "@/lib/utils";
+import { MONTH_NAMES, MEDAL_COLORS } from "@/lib/constants";
 import type { Profile, Cierre, Captacion, Trackeo } from "@/lib/types";
 import Link from "next/link";
 import {
@@ -34,6 +36,7 @@ import {
   LayoutGrid,
   Target,
   ArrowRight,
+  Medal,
 } from "lucide-react";
 import {
   BarChart,
@@ -44,6 +47,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { cn } from "@/lib/utils";
 
 interface ManagerDashboardContentProps {
   vendedores: Profile[];
@@ -63,19 +67,47 @@ interface ManagerDashboardContentProps {
   objetivos?: any[];
 }
 
-const MONTH_NAMES = [
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Septiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
+function cierreHon(c: Cierre) {
+  return (Number(c.valor_cierre) * Number(c.porcentaje_honorarios)) / 100;
+}
+
+function cierreCom(c: Cierre) {
+  return (cierreHon(c) * Number(c.porcentaje_agente)) / 100;
+}
+
+const NAV_LINKS = [
+  {
+    href: "/app/manager/trackeo",
+    icon: TrendingUp,
+    title: "Trackeo Global",
+    desc: "Reservas, cierres y capital humano",
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    href: "/app/manager/tablero",
+    icon: LayoutGrid,
+    title: "Tablero de Gestión",
+    desc: "Resumen detallado por agente",
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    href: "/app/manager/captaciones",
+    icon: Building,
+    title: "Trackeo Cartera",
+    desc: "Captaciones y operaciones cerradas",
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    href: "/app/manager/okr",
+    icon: Target,
+    title: "OKR Global",
+    desc: "Objetivos y cumplimiento trimestral",
+    color: "text-accent",
+    bg: "bg-accent/10",
+  },
 ];
 
 export function ManagerDashboardContent({
@@ -91,82 +123,97 @@ export function ManagerDashboardContent({
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [selectedVendedor, setSelectedVendedor] = useState<string>("all");
 
-  const cierreHon = (c: Cierre) =>
-    (Number(c.valor_cierre) * Number(c.porcentaje_honorarios)) / 100;
-  const cierreCom = (c: Cierre) =>
-    (cierreHon(c) * Number(c.porcentaje_agente)) / 100;
-
   // Filter by vendedor
-  const vCierres =
-    selectedVendedor === "all"
-      ? cierres
-      : cierres.filter((c) => c.user_id === selectedVendedor);
-  const vCaptaciones =
-    selectedVendedor === "all"
-      ? captaciones
-      : captaciones.filter((c) => c.user_id === selectedVendedor);
-  const vTrackeo =
-    selectedVendedor === "all"
-      ? trackeo
-      : trackeo.filter((t) => t.user_id === selectedVendedor);
+  const vCierres = useMemo(
+    () => selectedVendedor === "all" ? cierres : cierres.filter((c) => c.user_id === selectedVendedor),
+    [cierres, selectedVendedor],
+  );
+  const vCaptaciones = useMemo(
+    () => selectedVendedor === "all" ? captaciones : captaciones.filter((c) => c.user_id === selectedVendedor),
+    [captaciones, selectedVendedor],
+  );
+  const vTrackeo = useMemo(
+    () => selectedVendedor === "all" ? trackeo : trackeo.filter((t) => t.user_id === selectedVendedor),
+    [trackeo, selectedVendedor],
+  );
 
   // Filter by month
-  const filteredCierres =
-    selectedMonth === "all"
-      ? vCierres
-      : vCierres.filter(
-          (c) => parseDateStr(c.fecha).month === Number(selectedMonth),
-        );
-  const filteredTrackeo =
-    selectedMonth === "all"
-      ? vTrackeo
-      : vTrackeo.filter(
-          (t) => parseDateStr(t.fecha).month === Number(selectedMonth),
-        );
+  const filteredCierres = useMemo(
+    () => selectedMonth === "all" ? vCierres : vCierres.filter((c) => parseDateStr(c.fecha).month === Number(selectedMonth)),
+    [vCierres, selectedMonth],
+  );
+  const filteredTrackeo = useMemo(
+    () => selectedMonth === "all" ? vTrackeo : vTrackeo.filter((t) => parseDateStr(t.fecha).month === Number(selectedMonth)),
+    [vTrackeo, selectedMonth],
+  );
 
   // KPIs
-  const totalHonorarios = filteredCierres.reduce((s, c) => s + cierreHon(c), 0);
-  const totalComisiones = filteredCierres.reduce((s, c) => s + cierreCom(c), 0);
-  const totalPuntas = filteredCierres.reduce((s, c) => s + c.puntas, 0);
-  const totalLlamadas = filteredTrackeo.reduce((s, t) => s + t.llamadas, 0);
-  const totalVisitas = filteredTrackeo.reduce((s, t) => s + t.visitas, 0);
+  const { totalHonorarios, totalComisiones, totalPuntas } = useMemo(() => ({
+    totalHonorarios: filteredCierres.reduce((s, c) => s + cierreHon(c), 0),
+    totalComisiones: filteredCierres.reduce((s, c) => s + cierreCom(c), 0),
+    totalPuntas: filteredCierres.reduce((s, c) => s + c.puntas, 0),
+  }), [filteredCierres]);
+  const totalLlamadas = useMemo(() => filteredTrackeo.reduce((s, t) => s + t.llamadas, 0), [filteredTrackeo]);
+  const totalVisitas = useMemo(() => filteredTrackeo.reduce((s, t) => s + t.visitas, 0), [filteredTrackeo]);
 
-  // Vendedor ranking
-  const vendedorStats = vendedores
-    .map((v) => {
-      const vc = filteredCierres.filter((c) => c.user_id === v.id);
-      const vcap = vCaptaciones.filter((c) => c.user_id === v.id);
-      const vt = filteredTrackeo.filter((t) => t.user_id === v.id);
-      const hon = vc.reduce((s, c) => s + cierreHon(c), 0);
-      const com = vc.reduce((s, c) => s + cierreCom(c), 0);
-      const puntas = vc.reduce((s, c) => s + c.puntas, 0);
-      return {
-        id: v.id,
-        name: v.full_name || "Sin nombre",
-        cierres: vc.length,
-        honoriarios: hon,
-        comisiones: com,
-        puntas,
-        captaciones: vcap.length,
-        llamadas: vt.reduce((s, t) => s + t.llamadas, 0),
-        visitas: vt.reduce((s, t) => s + t.visitas, 0),
-      };
-    })
-    .sort((a, b) => b.honoriarios - a.honoriarios);
+  // Agent ranking
+  const vendedorStats = useMemo(
+    () => vendedores
+      .map((v) => {
+        const vc = filteredCierres.filter((c) => c.user_id === v.id);
+        const vcap = vCaptaciones.filter((c) => c.user_id === v.id);
+        const vt = filteredTrackeo.filter((t) => t.user_id === v.id);
+        const vcapBus = captacionesBusquedas.filter((c) => c.user_id === v.id);
+        const vTrackD = trackeoDiario.filter((t) => t.user_id === v.id);
+        const hon = vc.reduce((s, c) => s + cierreHon(c), 0);
+        const com = vc.reduce((s, c) => s + cierreCom(c), 0);
+        const puntas = vc.reduce((s, c) => s + c.puntas, 0);
+        const reservas = vTrackD.reduce((s, t) => s + Number(t.reservas_puntas || 0), 0);
+        return {
+          id: v.id,
+          name: v.full_name || "Sin nombre",
+          cierres: vc.length,
+          honorarios: hon,
+          comisiones: com,
+          puntas,
+          captaciones: vcap.length + vcapBus.length,
+          llamadas: vt.reduce((s, t) => s + t.llamadas, 0),
+          visitas: vt.reduce((s, t) => s + t.visitas, 0) + vTrackD.reduce((s, t) => s + Number(t.visitas || 0), 0),
+          reservas,
+        };
+      })
+      .sort((a, b) => b.honorarios - a.honorarios),
+    [vendedores, filteredCierres, vCaptaciones, filteredTrackeo, captacionesBusquedas, trackeoDiario],
+  );
 
-  // Chart: monthly honorarios
-  const honByMonth = Array.from({ length: 12 }, (_, i) => {
+  // Chart data
+  const honByMonth = useMemo(() => Array.from({ length: 12 }, (_, i) => {
     const mCierres = vCierres.filter((c) => parseDateStr(c.fecha).month === i);
     return {
       mes: MONTH_NAMES[i].substring(0, 3),
       honorarios: mCierres.reduce((s, c) => s + cierreHon(c), 0),
       comisiones: mCierres.reduce((s, c) => s + cierreCom(c), 0),
     };
-  });
+  }), [vCierres]);
+
+  // OKR
+  const { totalObjective, teamHonorarios, teamComisiones } = useMemo(() => {
+    const obj = objetivos.reduce((s: number, o: any) => {
+      const val = Number(o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0);
+      return s + (isNaN(val) ? 0 : val);
+    }, 0);
+    const hon = cierres.reduce((s, c) => s + cierreHon(c), 0);
+    const com = cierres.reduce((s, c) => s + cierreCom(c), 0);
+    return { totalObjective: obj, teamHonorarios: hon, teamComisiones: com };
+  }, [objetivos, cierres]);
+  const ingresosNetos = teamHonorarios - teamComisiones;
+  const okrProgress = totalObjective > 0
+    ? Math.min(Math.round((teamHonorarios / totalObjective) * 100), 100)
+    : 0;
 
   const periodLabel =
     selectedMonth === "all"
-      ? `Anual ${year}`
+      ? `Año ${year}`
       : `${MONTH_NAMES[Number(selectedMonth)]} ${year}`;
 
   const vendedorLabel =
@@ -174,308 +221,49 @@ export function ManagerDashboardContent({
       ? "Equipo completo"
       : vendedores.find((v) => v.id === selectedVendedor)?.full_name || "";
 
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Accesos rápidos a secciones del supervisor */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Secciones del Supervisor</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
-          <Link href="/app/manager/trackeo" className="group block">
-            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <div className="flex items-start justify-between">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">Trackeo Global</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Reservas, cierres y capital humano
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/app/manager/tablero" className="group block">
-            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <div className="flex items-start justify-between">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <LayoutGrid className="h-4 w-4 text-primary" />
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">Tablero de Gestión</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Resumen detallado por agente
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/app/manager/captaciones" className="group block">
-            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <div className="flex items-start justify-between">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Building className="h-4 w-4 text-primary" />
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">Trackeo Cartera</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Captaciones y operaciones cerradas
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/app/manager/okr" className="group block">
-            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <div className="flex items-start justify-between">
-                  <div className="p-2 rounded-lg bg-accent/10">
-                    <Target className="h-4 w-4 text-accent" />
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-accent transition-colors" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">OKR Global</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Objetivos y cumplimiento trimestral
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6 page-enter">
 
-      {/* Tablero de Gestión Inmobiliaria por Agente (resumen por agente) */}
-      <div>
-        <h2 className="text-lg font-semibold">
-          Tablero de Gestión Inmobiliaria por Agente
-        </h2>
-        <div className="mt-3">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Agente</TableHead>
-                <TableHead>Captaciones</TableHead>
-                <TableHead>Cierres</TableHead>
-                <TableHead>Honorarios</TableHead>
-                <TableHead className="text-right">Reservas</TableHead>
-                <TableHead className="text-right">Visitas</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {vendedores.map((v) => {
-                const vCaps = captacionesBusquedas.filter(
-                  (c) => c.user_id === v.id,
-                );
-                const vCierres = cierres.filter((c) => c.user_id === v.id);
-                const vTrack = trackeoDiario.filter((t) => t.user_id === v.id);
-                const honorarios = vCierres.reduce(
-                  (s, c) => s + cierreHon(c),
-                  0,
-                );
-                const reservas = vTrack.reduce(
-                  (s, t) => s + Number(t.reservas_puntas || 0),
-                  0,
-                );
-                const visitas = vTrack.reduce(
-                  (s, t) => s + Number(t.visitas || 0),
-                  0,
-                );
-                return (
-                  <TableRow key={v.id}>
-                    <TableCell>{v.full_name}</TableCell>
-                    <TableCell>{vCaps.length}</TableCell>
-                    <TableCell>{vCierres.length}</TableCell>
-                    <TableCell>{formatCurrency(honorarios)}</TableCell>
-                    <TableCell className="text-right">{reservas}</TableCell>
-                    <TableCell className="text-right">{visitas}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+      {/* ── 1. FILTROS ── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            {vendedores.length} agente{vendedores.length !== 1 ? "s" : ""} · {vendedorLabel} · {periodLabel}
+          </p>
         </div>
-      </div>
-
-      {/* Captaciones y Búsquedas VS Operaciones Cerradas - año */}
-      <div>
-        <h2 className="text-lg font-semibold">
-          CAPTACIONES Y BÚSQUEDAS VS OPERACIONES CERRADAS AÑO {year}
-        </h2>
-        <div className="mt-3">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Fecha Alta</TableHead>
-                <TableHead>Direccion</TableHead>
-                <TableHead>Operacion</TableHead>
-                <TableHead>Valor Publicado</TableHead>
-                <TableHead>Fecha Cierre</TableHead>
-                <TableHead>Honorarios</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {captacionesBusquedas.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>{c.id?.slice?.(0, 8) || "-"}</TableCell>
-                  <TableCell>
-                    {c.fecha_alta
-                      ? new Date(c.fecha_alta).toLocaleDateString()
-                      : "-"}
-                  </TableCell>
-                  <TableCell>{c.direccion || "-"}</TableCell>
-                  <TableCell>{c.operacion || "-"}</TableCell>
-                  <TableCell>
-                    {formatCurrency(Number(c.valor_publicado || 0))}
-                  </TableCell>
-                  <TableCell>
-                    {c.fecha_cierre
-                      ? new Date(c.fecha_cierre).toLocaleDateString()
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {formatCurrency(Number(c.honorarios_totales || 0))}
-                  </TableCell>
-                </TableRow>
+        <div className="flex items-center gap-2">
+          <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Vendedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Equipo completo</SelectItem>
+              {vendedores.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.full_name || "Sin nombre"}
+                </SelectItem>
               ))}
-            </TableBody>
-          </Table>
+            </SelectContent>
+          </Select>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Mes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todo el año {year}</SelectItem>
+              {MONTH_NAMES.map((name, i) => (
+                <SelectItem key={i} value={String(i)}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* OKR Global - Summary with link to full page */}
-      <div>
-        <h2 className="text-lg font-semibold">OKR Global - {year}</h2>
-        {(() => {
-          const totalObjective = objetivos.reduce((s: number, o: any) => {
-            const val = Number(
-              o.objetivo_comisiones_brutas ?? o.objetivo_facturacion_total ?? 0,
-            );
-            return s + (isNaN(val) ? 0 : val);
-          }, 0);
-
-          const teamHonorarios = cierres.reduce((s, c) => s + cierreHon(c), 0);
-          const teamComisiones = cierres.reduce((s, c) => s + cierreCom(c), 0);
-          const ingresosNetos = teamHonorarios - teamComisiones;
-          const progressPct =
-            totalObjective > 0
-              ? Math.round((teamHonorarios / totalObjective) * 100)
-              : 0;
-
-          return (
-            <div className="mt-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">
-                      Objetivo Honorarios Brutos (Equipo)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xl font-bold">
-                      {formatCurrency(totalObjective)}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Meta anual sumada de vendedores
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">
-                      Honorarios Brutos Obtenidos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xl font-bold">
-                      {formatCurrency(teamHonorarios)}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Progreso: {progressPct}%
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Ingresos Netos</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xl font-bold">
-                      {formatCurrency(ingresosNetos)}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Honorarios - Comisiones agentes
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-              <div className="mt-3">
-                <Link
-                  href="/app/manager/okr"
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  Ver desglose completo por trimestre y operación →
-                </Link>
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Dashboard Encargado
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {vendedores.length} vendedores asignados - {vendedorLabel} -{" "}
-          {periodLabel}
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Vendedor" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Equipo completo</SelectItem>
-            {vendedores.map((v) => (
-              <SelectItem key={v.id} value={v.id}>
-                {v.full_name || "Sin nombre"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Mes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todo el anio {year}</SelectItem>
-            {MONTH_NAMES.map((name, i) => (
-              <SelectItem key={i} value={String(i)}>
-                {name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* ── 2. KPIs PRINCIPALES ── */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4 stagger-children">
         <KpiCard
           title="Vendedores"
           value={String(vendedores.length)}
@@ -486,154 +274,237 @@ export function ManagerDashboardContent({
           value={String(filteredCierres.length)}
           subtitle={`${totalPuntas} puntas`}
           icon={Handshake}
+          variant="primary"
         />
         <KpiCard
           title="Honorarios"
           value={formatCurrency(totalHonorarios)}
-          subtitle="facturacion"
+          subtitle="facturación equipo"
           icon={DollarSign}
+          variant="success"
         />
         <KpiCard
           title="Comisiones"
           value={formatCurrency(totalComisiones)}
+          subtitle="ingreso agentes"
           icon={TrendingUp}
+          variant="accent"
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 stagger-children">
         <KpiCard
-          title="Captaciones en Cartera"
+          title="Captaciones"
           value={String(vCaptaciones.length)}
+          subtitle="en cartera"
           icon={Building}
         />
         <KpiCard
           title="Llamadas"
           value={formatNumber(totalLlamadas)}
+          subtitle={`${filteredTrackeo.length} días trackeados`}
           icon={Phone}
         />
         <KpiCard
           title="Visitas"
           value={formatNumber(totalVisitas)}
+          subtitle="realizadas"
           icon={Eye}
         />
       </div>
 
-      {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Honorarios y Comisiones por Mes - {year}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {vCierres.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={honByMonth}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
-                <XAxis
-                  dataKey="mes"
-                  className="text-xs"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <YAxis
-                  className="text-xs"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
-                  }}
-                />
-                <Bar
-                  dataKey="honorarios"
-                  fill="hsl(var(--chart-1))"
-                  radius={[4, 4, 0, 0]}
-                  name="Honorarios"
-                />
-                <Bar
-                  dataKey="comisiones"
-                  fill="hsl(var(--chart-2))"
-                  radius={[4, 4, 0, 0]}
-                  name="Comisiones"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">
-              Sin cierres registrados
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Ranking table */}
-      {selectedVendedor === "all" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Ranking de Vendedores</CardTitle>
+      {/* ── 3. GRÁFICO + OKR ── */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base" id="hon-chart">
+              Honorarios y Comisiones por Mes — {year}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Vendedor</TableHead>
-                  <TableHead className="text-right">Cierres</TableHead>
-                  <TableHead className="text-right">Puntas</TableHead>
-                  <TableHead className="text-right">Honorarios</TableHead>
-                  <TableHead className="text-right">Comisiones</TableHead>
-                  <TableHead className="text-right">Captaciones</TableHead>
-                  <TableHead className="text-right">Llamadas</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vendedorStats.map((v, i) => (
-                  <TableRow key={v.id}>
-                    <TableCell>
-                      {i < 3 ? (
-                        <Badge
-                          variant={i === 0 ? "default" : "secondary"}
-                          className="w-6 h-6 flex items-center justify-center rounded-full p-0 text-xs"
-                        >
-                          {i + 1}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">{i + 1}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/app/manager/vendedores/${v.id}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {v.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right">{v.cierres}</TableCell>
-                    <TableCell className="text-right">{v.puntas}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(v.honoriarios)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(v.comisiones)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {v.captaciones}
-                    </TableCell>
-                    <TableCell className="text-right">{v.llamadas}</TableCell>
+            {vCierres.length > 0 ? (
+              <div role="region" aria-labelledby="hon-chart" className="h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={honByMonth} accessibilityLayer>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                    <XAxis
+                      dataKey="mes"
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      className="text-xs"
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--muted)/0.2)" }}
+                      formatter={(value: number) => formatCurrency(value)}
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "var(--radius)",
+                      }}
+                    />
+                    <Bar dataKey="honorarios" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} name="Honorarios" />
+                    <Bar dataKey="comisiones" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} name="Comisiones" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                Sin cierres registrados este año
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* OKR Progress */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">OKR Equipo — {year}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-medium text-muted-foreground">Progreso hacia objetivo</p>
+                <span className="text-sm font-bold text-foreground">{okrProgress}%</span>
+              </div>
+              <Progress value={okrProgress} className="h-2.5" />
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {formatCurrency(teamHonorarios)} de {totalObjective > 0 ? formatCurrency(totalObjective) : "sin meta"}
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">Hon. Brutos</p>
+                <p className="text-sm font-semibold text-primary">{formatCurrency(teamHonorarios)}</p>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">Com. Agentes</p>
+                <p className="text-sm font-semibold">{formatCurrency(teamComisiones)}</p>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-primary/8 px-3 py-2 border border-primary/20">
+                <p className="text-xs font-medium text-primary">Ingresos Netos</p>
+                <p className="text-sm font-bold text-primary">{formatCurrency(ingresosNetos)}</p>
+              </div>
+            </div>
+
+            <Link
+              href="/app/manager/okr"
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline mt-auto"
+            >
+              Ver desglose completo
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── 4. RANKING DE AGENTES ── */}
+      {selectedVendedor === "all" && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Ranking de Agentes — {periodLabel}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-10 pl-4">#</TableHead>
+                    <TableHead>Agente</TableHead>
+                    <TableHead className="text-right">Cierres</TableHead>
+                    <TableHead className="text-right">Puntas</TableHead>
+                    <TableHead className="text-right">Honorarios</TableHead>
+                    <TableHead className="text-right">Comisiones</TableHead>
+                    <TableHead className="text-right">Captaciones</TableHead>
+                    <TableHead className="text-right pr-4">Llamadas</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {vendedorStats.map((v, i) => (
+                    <TableRow key={v.id} className={cn(i === 0 && "bg-primary/5")}>
+                      <TableCell className="pl-4">
+                        {i < 3 ? (
+                          <span
+                            className={cn(
+                              "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold",
+                              MEDAL_COLORS[i],
+                            )}
+                          >
+                            {i + 1}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground pl-1">{i + 1}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/app/manager/vendedores/${v.id}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {v.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{v.cierres}</TableCell>
+                      <TableCell className="text-right tabular-nums">{v.puntas}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {formatCurrency(v.honorarios)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatCurrency(v.comisiones)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{v.captaciones}</TableCell>
+                      <TableCell className="text-right tabular-nums pr-4">{v.llamadas}</TableCell>
+                    </TableRow>
+                  ))}
+                  {vendedorStats.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
+                        Sin datos para el período seleccionado
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
+
+      {/* ── 5. NAVEGACIÓN RÁPIDA ── */}
+      <div>
+        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+          Secciones del supervisor
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 stagger-children">
+          {NAV_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} className="group block cursor-pointer">
+              <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+                <CardContent className="p-4 flex flex-col gap-2.5">
+                  <div className="flex items-start justify-between">
+                    <div className={cn("p-2 rounded-lg", link.bg)}>
+                      <link.icon className={cn("h-4 w-4", link.color)} aria-hidden="true" />
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-foreground">{link.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{link.desc}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }

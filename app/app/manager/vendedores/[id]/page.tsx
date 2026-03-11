@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { VendedorDetail } from '@/components/manager/vendedor-detail'
+import { AppHeader } from '@/components/app-header'
 import type { Profile } from '@/lib/types'
 
 export default async function VendedorDetailPage({
@@ -78,15 +79,18 @@ export default async function VendedorDetailPage({
   ])
 
   return (
-    <div className="p-6">
-      <VendedorDetail
-        vendedor={vendedorProfile as Profile}
-        cierres={cierresRes.data || []}
-        captaciones={captacionesRes.data || []}
-        trackeo={trackeoRes.data || []}
-        objetivo={objetivosRes.data}
-        year={year}
-      />
-    </div>
+    <>
+      <AppHeader title={vendedorProfile.full_name || 'Agente'} />
+      <div className="p-4 lg:p-6">
+        <VendedorDetail
+          vendedor={vendedorProfile as Profile}
+          cierres={cierresRes.data || []}
+          captaciones={captacionesRes.data || []}
+          trackeo={trackeoRes.data || []}
+          objetivo={objetivosRes.data}
+          year={year}
+        />
+      </div>
+    </>
   )
 }

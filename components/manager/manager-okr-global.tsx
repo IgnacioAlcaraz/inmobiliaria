@@ -2,6 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { KpiCard } from "@/components/kpi-card";
 import {
   Table,
   TableBody,
@@ -28,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/export";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
-import { ArrowUpDown, Pencil, Check, X } from "lucide-react";
+import { ArrowUpDown, Pencil, Check, X, DollarSign, TrendingUp, Target } from "lucide-react";
 import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
@@ -224,76 +226,38 @@ function OkrTable({ rows, totals }: { rows: ComputedRow[]; totals: Totals }) {
         </TableHeader>
         <TableBody>
           {/* Totals row */}
-          <TableRow className="bg-muted/50 font-semibold">
-            <TableCell>TOTAL</TableCell>
-            <TableCell>-</TableCell>
-            <TableCell className="text-right">-</TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.valorCierre)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.honorarioBruto)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.regalias)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.honorarioNeto)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.director)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.martillero)}
-            </TableCell>
-            <TableCell className="text-right">-</TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.comisionAgente)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.ingresoNetoCentro)}
-            </TableCell>
-            <TableCell className="text-right">
-              {formatCurrency(totals.resultadoCentroAcumulado)}
-            </TableCell>
+          <TableRow className="bg-primary/5 font-semibold border-b-2">
+            <TableCell className="font-bold">TOTAL</TableCell>
+            <TableCell>—</TableCell>
+            <TableCell className="text-right">—</TableCell>
+            <TableCell className="text-right tabular-nums">{formatCurrency(totals.valorCierre)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatCurrency(totals.honorarioBruto)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatCurrency(totals.regalias)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatCurrency(totals.honorarioNeto)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatCurrency(totals.director)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatCurrency(totals.martillero)}</TableCell>
+            <TableCell className="text-right">—</TableCell>
+            <TableCell className="text-right tabular-nums">{formatCurrency(totals.comisionAgente)}</TableCell>
+            <TableCell className="text-right tabular-nums text-primary">{formatCurrency(totals.ingresoNetoCentro)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatCurrency(totals.resultadoCentroAcumulado)}</TableCell>
           </TableRow>
 
           {/* Data rows */}
           {rows.map((r) => (
             <TableRow key={r.id}>
-              <TableCell className="whitespace-nowrap">{r.agente}</TableCell>
+              <TableCell className="whitespace-nowrap font-medium">{r.agente}</TableCell>
               <TableCell>{r.operacion}</TableCell>
-              <TableCell className="text-right">{r.pctHonorarios}%</TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.valorCierre)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.honorarioBruto)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.regalias)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.honorarioNeto)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.director)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.martillero)}
-              </TableCell>
-              <TableCell className="text-right">
-                {r.pctComisionAgente}%
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.comisionAgente)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.ingresoNetoCentro)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatCurrency(r.resultadoCentroAcumulado)}
-              </TableCell>
+              <TableCell className="text-right tabular-nums">{r.pctHonorarios}%</TableCell>
+              <TableCell className="text-right tabular-nums">{formatCurrency(r.valorCierre)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatCurrency(r.honorarioBruto)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatCurrency(r.regalias)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatCurrency(r.honorarioNeto)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatCurrency(r.director)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatCurrency(r.martillero)}</TableCell>
+              <TableCell className="text-right tabular-nums">{r.pctComisionAgente}%</TableCell>
+              <TableCell className="text-right tabular-nums">{formatCurrency(r.comisionAgente)}</TableCell>
+              <TableCell className="text-right tabular-nums font-medium">{formatCurrency(r.ingresoNetoCentro)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatCurrency(r.resultadoCentroAcumulado)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -452,22 +416,22 @@ export function ManagerOkrGlobal({
   }, [cierres]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <h2 className="text-lg font-semibold">OKR Global - {year}</h2>
+    <div className="flex flex-col gap-6 page-enter">
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* ── KPI Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 stagger-children">
+        {/* Objetivo — editable */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">
-                Objetivo Honorarios Brutos (Centro)
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Meta del Centro {year}
               </CardTitle>
               {!editingMeta && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6"
+                  className="h-6 w-6 cursor-pointer"
                   onClick={() => {
                     setMetaInput(
                       String(
@@ -478,15 +442,16 @@ export function ManagerOkrGlobal({
                     );
                     setEditingMeta(true);
                   }}
+                  aria-label="Editar meta"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             {editingMeta ? (
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2">
                 <Input
                   type="number"
                   min={0}
@@ -495,63 +460,55 @@ export function ManagerOkrGlobal({
                   className="h-8 text-sm"
                   placeholder="Ej: 500000"
                 />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  disabled={savingMeta}
-                  onClick={handleSaveMeta}
-                >
+                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" disabled={savingMeta} onClick={handleSaveMeta}>
                   <Check className="h-4 w-4 text-green-600" />
                 </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  onClick={() => setEditingMeta(false)}
-                >
+                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setEditingMeta(false)}>
                   <X className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
             ) : (
-              <>
-                <p className="text-xl font-bold">
-                  {totalObjective > 0 ? (
-                    formatCurrency(totalObjective)
-                  ) : (
-                    <span className="text-muted-foreground text-base">
-                      Sin meta (click lápiz)
-                    </span>
-                  )}
-                </p>
-              </>
+              <p className="text-2xl font-bold tabular-nums">
+                {totalObjective > 0 ? (
+                  formatCurrency(totalObjective)
+                ) : (
+                  <span className="text-muted-foreground text-base font-normal">Sin meta — click lápiz</span>
+                )}
+              </p>
             )}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">
-              Honorarios Brutos Obtenidos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">
-              {formatCurrency(teamHonorarios)}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Progreso: {progressPct}%
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Ingresos Netos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">{formatCurrency(ingresosNetos)}</p>
-          </CardContent>
-        </Card>
+
+        <KpiCard
+          title="Honorarios Brutos"
+          value={formatCurrency(teamHonorarios)}
+          subtitle={`Progreso: ${progressPct}%`}
+          icon={DollarSign}
+          variant="success"
+        />
+        <KpiCard
+          title="Ingresos Netos"
+          value={formatCurrency(ingresosNetos)}
+          icon={TrendingUp}
+          variant="primary"
+        />
       </div>
+
+      {/* ── Progress bar ── */}
+      {totalObjective > 0 && (
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">Progreso hacia meta anual</p>
+              <span className="text-sm font-bold tabular-nums">{progressPct}%</span>
+            </div>
+            <Progress value={Math.min(progressPct, 100)} className="h-2.5" />
+            <p className="text-xs text-muted-foreground mt-2">
+              {formatCurrency(teamHonorarios)} de {formatCurrency(totalObjective)}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Accordion sections */}
       <Accordion type="multiple" className="w-full">

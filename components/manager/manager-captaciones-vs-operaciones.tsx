@@ -100,17 +100,10 @@ export function ManagerCaptacionesVsOperaciones({
   );
 
   const hClass = "text-[10px] px-2 py-1.5 whitespace-nowrap font-semibold";
-  const cClass = "text-xs px-2 py-1.5 whitespace-nowrap";
+  const cClass = "text-xs px-2 py-1.5 whitespace-nowrap tabular-nums";
 
   return (
-    <div className="flex flex-col gap-6 page-enter">
-      <div>
-        <h1 className="text-2xl font-bold">Trackeo Cartera</h1>
-        <p className="text-sm text-muted-foreground">
-          Captaciones y búsquedas vs operaciones cerradas &mdash; Año {year}
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-6 page-enter w-full overflow-x-hidden">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <KpiCard
@@ -138,7 +131,7 @@ export function ManagerCaptacionesVsOperaciones({
         />
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             {sorted.length} registros &mdash; Página {page + 1} de {totalPages}

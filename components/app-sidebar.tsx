@@ -24,6 +24,7 @@ import {
   MessageCircle,
   Users,
   Contact,
+  LayoutGrid,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -45,7 +46,7 @@ const encargadoItems = [
   { title: 'Dashboard', url: '/app/manager/dashboard', icon: LayoutDashboard },
   { title: 'Vendedores', url: '/app/manager/vendedores', icon: Users },
   { title: 'Trackeo Global', url: '/app/manager/trackeo', icon: CalendarCheck },
-  { title: 'Tablero Gestión', url: '/app/manager/tablero', icon: Users },
+  { title: 'Tablero Gestión', url: '/app/manager/tablero', icon: LayoutGrid },
   { title: 'Trackeo Cartera', url: '/app/manager/captaciones', icon: Building },
   { title: 'OKR Global', url: '/app/manager/okr', icon: Target },
   { title: 'Chat IA', url: '/app/manager/chat', icon: MessageCircle },
@@ -54,7 +55,7 @@ const encargadoItems = [
 const adminItems = [
   { title: 'Administracion', url: '/app/admin', icon: ShieldCheck },
   { title: 'Trackeo - Reservas vs Cierres', url: '/app/manager/trackeo', icon: CalendarCheck },
-  { title: 'Tablero Gestión', url: '/app/manager/tablero', icon: Users },
+  { title: 'Tablero Gestión', url: '/app/manager/tablero', icon: LayoutGrid },
   { title: 'Trackeo Cartera', url: '/app/manager/captaciones', icon: Building },
   { title: 'OKR Global', url: '/app/manager/okr', icon: Target },
 ]

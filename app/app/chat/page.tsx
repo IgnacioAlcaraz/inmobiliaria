@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/server'
 import { ChatContent } from '@/components/chat/chat-content'
+import { AppHeader } from '@/components/app-header'
 
 export default async function ChatPage() {
   const user = await getCurrentUser()
@@ -15,5 +16,10 @@ export default async function ChatPage() {
     .order('created_at', { ascending: true })
     .limit(50)
 
-  return <ChatContent initialMessages={messages || []} />
+  return (
+    <>
+      <AppHeader title="Chat IA" />
+      <ChatContent initialMessages={messages || []} />
+    </>
+  )
 }

@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/export";
+import { MONTH_NAMES } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { Building, Handshake, TrendingUp, DollarSign } from "lucide-react";
 
@@ -23,21 +24,6 @@ interface Props {
   trackeoDiario: any[];
   year: number;
 }
-
-const MONTH_NAMES = [
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Septiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
-];
 
 function isExclusiva(autorizacion: string | null | undefined): boolean {
   if (!autorizacion) return false;
@@ -81,14 +67,7 @@ export function ManagerTableroGestion({
   );
 
   return (
-    <div className="flex flex-col gap-8 page-enter">
-      <div>
-        <h1 className="text-2xl font-bold">Tablero de Gestión Inmobiliaria</h1>
-        <p className="text-sm text-muted-foreground">
-          {vendedores.length} agentes &mdash; Año {year}
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-8 page-enter w-full overflow-x-hidden">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <KpiCard
           title="Captaciones"
@@ -329,7 +308,7 @@ function AgentTable({
     0,
   );
 
-  const cellClass = "text-xs px-2 py-1.5 text-right whitespace-nowrap";
+  const cellClass = "text-xs px-2 py-1.5 text-right whitespace-nowrap tabular-nums";
   const headerClass =
     "text-[10px] px-2 py-1.5 text-right whitespace-nowrap font-semibold";
   const separatorClass = "border-l-2 border-primary/30";

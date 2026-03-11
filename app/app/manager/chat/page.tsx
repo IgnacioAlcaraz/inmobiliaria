@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentProfile } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/server'
 import { ManagerChatContent } from '@/components/manager/manager-chat-content'
+import { AppHeader } from '@/components/app-header'
 import type { Profile, ChatMessage } from '@/lib/types'
 
 export default async function ManagerChatPage() {
@@ -35,9 +36,12 @@ export default async function ManagerChatPage() {
   ])
 
   return (
-    <ManagerChatContent
-      initialMessages={(messagesRes.data || []) as ChatMessage[]}
-      vendedores={(vendedorProfilesRes.data || []) as Profile[]}
-    />
+    <>
+      <AppHeader title="Chat IA" />
+      <ManagerChatContent
+        initialMessages={(messagesRes.data || []) as ChatMessage[]}
+        vendedores={(vendedorProfilesRes.data || []) as Profile[]}
+      />
+    </>
   )
 }

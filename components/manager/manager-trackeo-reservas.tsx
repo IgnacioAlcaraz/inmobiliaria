@@ -7,10 +7,11 @@ import {
   TableBody,
   TableHead,
 } from "../ui/table";
-import React from "react";
+import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/kpi-card";
 import { formatCurrency } from "@/lib/export";
+import { MONTH_NAMES } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { DollarSign, Handshake, Phone, TrendingUp } from "lucide-react";
 import {
@@ -30,6 +31,7 @@ interface Props {
   captacionesBusquedas?: any[];
   vendedores?: Profile[];
   manualEntries?: any[];
+  year?: number;
 }
 
 export function ManagerTrackeoGlobal({
@@ -37,24 +39,10 @@ export function ManagerTrackeoGlobal({
   captacionesBusquedas = [],
   vendedores = [],
   manualEntries = [],
+  year = new Date().getFullYear(),
 }: Props) {
-  const MONTH_NAMES = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
-  ];
-
   // Helper: rows by month index 0..11
-  const rowsByMonth = Array.from({ length: 12 }, (_, i) => {
+  const rowsByMonth = useMemo(() => Array.from({ length: 12 }, (_, i) => {
     const rows = (trackeoDiario || []).filter(
       (t) => new Date(t.fecha).getMonth() === i,
     );
@@ -97,50 +85,54 @@ export function ManagerTrackeoGlobal({
       captacionesCnt,
       captacionesValor,
     };
-  });
+  }), [trackeoDiario, captacionesBusquedas]);
 
-  // running accumulators for reservas
-  let acumulReservasPuntas = 0;
-  let acumulReservasValor = 0;
+  // Pre-compute running accumulators — avoids mutation inside JSX .map()
+  const rowsWithAccum = useMemo(() => {
+    let acumP = 0;
+    let acumV = 0;
+    return rowsByMonth.map((r) => {
+      acumP += r.reservasPuntas;
+      acumV += r.reservasValor;
+      return { ...r, acumPuntas: acumP, acumValor: acumV };
+    });
+  }, [rowsByMonth]);
 
   // normalize manual entries to map by section/month/key
-  const manualMap: Record<string, any> = {};
-  (manualEntries || []).forEach((m: any) => {
-    const k = `${m.section}::${m.month}::${m.key}`;
-    manualMap[k] = m;
-  });
+  const manualMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    (manualEntries || []).forEach((m: any) => {
+      map[`${m.section}::${m.month}::${m.key}`] = m;
+    });
+    return map;
+  }, [manualEntries]);
 
   // For capital humano we approximate from vendedores list (created_at)
-  const vendedoresByMonth = Array.from(
-    { length: 12 },
-    (_, i) =>
-      (vendedores || []).filter((v) => new Date(v.created_at).getMonth() === i)
-        .length,
+  const vendedoresByMonth = useMemo(
+    () => Array.from({ length: 12 }, (_, i) =>
+      (vendedores || []).filter((v) => new Date(v.created_at).getMonth() === i).length,
+    ),
+    [vendedores],
   );
 
-  const totalHonorarios = rowsByMonth.reduce(
-    (s, r) => s + r.cierresHonorarios,
-    0,
+  const { totalHonorarios, totalReservasPuntas, totalCierresPuntas, totalLlamadas } = useMemo(
+    () => rowsByMonth.reduce(
+      (acc, r) => ({
+        totalHonorarios: acc.totalHonorarios + r.cierresHonorarios,
+        totalReservasPuntas: acc.totalReservasPuntas + r.reservasPuntas,
+        totalCierresPuntas: acc.totalCierresPuntas + r.cierresPuntas,
+        totalLlamadas: acc.totalLlamadas + r.llamadas,
+      }),
+      { totalHonorarios: 0, totalReservasPuntas: 0, totalCierresPuntas: 0, totalLlamadas: 0 },
+    ),
+    [rowsByMonth],
   );
-  const totalReservasPuntas = rowsByMonth.reduce(
-    (s, r) => s + r.reservasPuntas,
-    0,
-  );
-  const totalCierresPuntas = rowsByMonth.reduce(
-    (s, r) => s + r.cierresPuntas,
-    0,
-  );
-  const totalLlamadas = rowsByMonth.reduce((s, r) => s + r.llamadas, 0);
 
   return (
     <div className="flex flex-col gap-6 page-enter">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold">Trackeo Global</h1>
-        <p className="text-sm text-muted-foreground">
-          {vendedores.length} agentes &mdash; año {new Date().getFullYear()}
-        </p>
-      </div>
+      <p className="text-sm font-medium text-muted-foreground">
+        {vendedores.length} agente{vendedores.length !== 1 ? 's' : ''} &mdash; año {year}
+      </p>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
@@ -188,10 +180,7 @@ export function ManagerTrackeoGlobal({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rowsByMonth.map((r) => {
-                    acumulReservasPuntas += r.reservasPuntas;
-                    acumulReservasValor += r.reservasValor;
-                    return (
+                  {rowsWithAccum.map((r) => (
                       <TableRow key={r.monthIndex}>
                         <TableCell>{r.monthName}</TableCell>
                         <TableCell>
@@ -217,16 +206,15 @@ export function ManagerTrackeoGlobal({
                         <TableCell>
                           {manualMap[
                             `reservas_vs_cierres::${r.monthIndex}::puntas_reservas_acumuladas`
-                          ]?.value ?? acumulReservasPuntas}
+                          ]?.value ?? r.acumPuntas}
                         </TableCell>
                         <TableCell>
                           {manualMap[
                             `reservas_vs_cierres::${r.monthIndex}::honorarios_reservas_acumulados`
-                          ]?.value ?? formatCurrency(acumulReservasValor)}
+                          ]?.value ?? formatCurrency(r.acumValor)}
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
+                  ))}
 
                   {/* Acumulado row */}
                   <TableRow>
@@ -260,19 +248,20 @@ export function ManagerTrackeoGlobal({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={rowsByMonth.map((r) => ({
-                    mes: r.monthName,
+                    mes: r.monthName.substring(0, 3),
                     honorarios: r.cierresHonorarios,
                   }))}
+                  accessibilityLayer
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  <Bar
-                    dataKey="honorarios"
-                    fill="hsl(var(--chart-1))"
-                    radius={[3, 3, 0, 0]}
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(v: number) => formatCurrency(v)}
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)" }}
+                    cursor={{ fill: "hsl(var(--muted)/0.2)" }}
                   />
+                  <Bar dataKey="honorarios" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} name="Honorarios" />
                 </BarChart>
               </ResponsiveContainer>
               <p className="text-xs text-muted-foreground mt-2 text-center">
@@ -369,26 +358,22 @@ export function ManagerTrackeoGlobal({
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={rowsByMonth.map((r) => ({
-                    mes: r.monthName,
+                    mes: r.monthName.substring(0, 3),
                     resultado:
                       r.cierresHonorarios -
-                      (manualMap[`numerico::${r.monthIndex}::comision_agentes`]
-                        ?.value ?? 0) -
-                      (manualMap[`numerico::${r.monthIndex}::gastos_mes`]
-                        ?.value ?? 0),
+                      (manualMap[`numerico::${r.monthIndex}::comision_agentes`]?.value ?? 0) -
+                      (manualMap[`numerico::${r.monthIndex}::gastos_mes`]?.value ?? 0),
                   }))}
+                  accessibilityLayer
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  <Line
-                    type="monotone"
-                    dataKey="resultado"
-                    stroke="hsl(var(--chart-2))"
-                    strokeWidth={2}
-                    dot={false}
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(v: number) => formatCurrency(v)}
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)" }}
                   />
+                  <Line type="monotone" dataKey="resultado" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={false} name="Resultado" />
                 </LineChart>
               </ResponsiveContainer>
               <p className="text-xs text-muted-foreground mt-2 text-center">
@@ -507,23 +492,18 @@ export function ManagerTrackeoGlobal({
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={rowsByMonth.map((r, idx) => ({
-                    mes: r.monthName,
+                    mes: r.monthName.substring(0, 3),
                     total: (vendedores || []).filter(
                       (v) => new Date(v.created_at).getMonth() <= idx,
                     ).length,
                   }))}
+                  accessibilityLayer
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="total"
-                    stroke="hsl(var(--chart-4))"
-                    strokeWidth={2}
-                    dot={false}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)" }} />
+                  <Line type="monotone" dataKey="total" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false} name="Agentes" />
                 </LineChart>
               </ResponsiveContainer>
               <p className="text-xs text-muted-foreground mt-2 text-center">
@@ -630,22 +610,17 @@ export function ManagerTrackeoGlobal({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={rowsByMonth.map((r) => ({
-                    mes: r.monthName,
+                    mes: r.monthName.substring(0, 3),
                     total:
-                      manualMap[
-                        `evolucion_cartera::${r.monthIndex}::total_cartera_mes`
-                      ]?.value ?? r.captacionesCnt,
+                      manualMap[`evolucion_cartera::${r.monthIndex}::total_cartera_mes`]?.value ?? r.captacionesCnt,
                   }))}
+                  accessibilityLayer
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar
-                    dataKey="total"
-                    fill="hsl(var(--chart-3))"
-                    radius={[3, 3, 0, 0]}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)" }} />
+                  <Bar dataKey="total" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} name="Cartera" />
                 </BarChart>
               </ResponsiveContainer>
               <p className="text-xs text-muted-foreground mt-2 text-center">

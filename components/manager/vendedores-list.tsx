@@ -3,9 +3,11 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/export'
+import { MEDAL_COLORS } from '@/lib/constants'
 import type { Profile, Cierre, Captacion, Trackeo } from '@/lib/types'
-import { User, Handshake, Building, Phone, ArrowRight } from 'lucide-react'
+import { Handshake, Building, Phone, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 interface VendedoresListProps {
   vendedores: Profile[]
@@ -38,63 +40,79 @@ export function VendedoresList({
       puntas,
       captacionesCount: vcap.length,
       llamadas: vt.reduce((s, t) => s + t.llamadas, 0),
-      visitas: vt.reduce((s, t) => s + t.visitas, 0),
-      diasTrackeados: vt.length,
     }
   }).sort((a, b) => b.honorarios - a.honorarios)
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Vendedores</h1>
-        <p className="text-sm text-muted-foreground">
-          {vendedores.length} vendedores asignados - {year}
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 page-enter">
+      <p className="text-sm font-medium text-muted-foreground">
+        {vendedores.length} agente{vendedores.length !== 1 ? 's' : ''} asignado{vendedores.length !== 1 ? 's' : ''} — {year}
+      </p>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
         {stats.map((v, i) => (
-          <Link key={v.id} href={`/app/manager/vendedores/${v.id}`}>
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-              <CardContent className="pt-6">
+          <Link key={v.id} href={`/app/manager/vendedores/${v.id}`} className="group block cursor-pointer">
+            <Card className="h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+              <CardContent className="p-5">
+                {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-primary/10 p-2">
-                      <User className="h-5 w-5 text-primary" />
-                    </div>
+                    {i < 3 ? (
+                      <span
+                        className={cn(
+                          'inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shrink-0',
+                          MEDAL_COLORS[i],
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                    ) : (
+                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground shrink-0">
+                        {i + 1}
+                      </div>
+                    )}
                     <div>
-                      <p className="font-semibold text-foreground">{v.full_name || 'Sin nombre'}</p>
+                      <p className="font-semibold text-foreground leading-tight">
+                        {v.full_name || 'Sin nombre'}
+                      </p>
                       {i < 3 && (
-                        <Badge variant={i === 0 ? 'default' : 'secondary'} className="text-xs mt-1">
+                        <Badge
+                          variant={i === 0 ? 'default' : 'secondary'}
+                          className="text-[10px] px-1.5 py-0 mt-1"
+                        >
                           #{i + 1} ranking
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-150 mt-1 shrink-0" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                {/* Metrics */}
+                <div className="grid grid-cols-2 gap-2.5 text-sm mb-4">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Handshake className="h-3.5 w-3.5" />
-                    <span>{v.cierresCount} cierres</span>
+                    <Handshake className="h-3.5 w-3.5 shrink-0" />
+                    <span className="tabular-nums">{v.cierresCount} cierres</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Building className="h-3.5 w-3.5" />
-                    <span>{v.captacionesCount} captaciones</span>
+                    <Building className="h-3.5 w-3.5 shrink-0" />
+                    <span className="tabular-nums">{v.captacionesCount} captaciones</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5" />
-                    <span>{v.llamadas} llamadas</span>
+                    <Phone className="h-3.5 w-3.5 shrink-0" />
+                    <span className="tabular-nums">{v.llamadas} llamadas</span>
                   </div>
-                  <div className="text-muted-foreground">
+                  <div className="text-muted-foreground tabular-nums">
                     {v.puntas} puntas
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-border">
-                  <p className="text-lg font-bold text-foreground">{formatCurrency(v.honorarios)}</p>
-                  <p className="text-xs text-muted-foreground">honorarios {year}</p>
+                {/* Honorarios */}
+                <div className="pt-3 border-t border-border">
+                  <p className="text-lg font-bold text-foreground tabular-nums">
+                    {formatCurrency(v.honorarios)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">honorarios {year}</p>
                 </div>
               </CardContent>
             </Card>

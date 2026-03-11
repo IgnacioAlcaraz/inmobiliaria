@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentProfile } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/server'
 import { VendedoresList } from '@/components/manager/vendedores-list'
+import { AppHeader } from '@/components/app-header'
 import type { Profile } from '@/lib/types'
 
 export default async function ManagerVendedoresPage() {
@@ -24,10 +25,12 @@ export default async function ManagerVendedoresPage() {
 
   if (vendedorIds.length === 0) {
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Vendedores</h1>
-        <p className="text-muted-foreground">No tienes vendedores asignados.</p>
-      </div>
+      <>
+        <AppHeader title="Vendedores" />
+        <div className="p-4 lg:p-6">
+          <p className="text-muted-foreground">No tienes vendedores asignados.</p>
+        </div>
+      </>
     )
   }
 
@@ -53,7 +56,9 @@ export default async function ManagerVendedoresPage() {
   ])
 
   return (
-    <div className="p-6">
+    <>
+      <AppHeader title="Vendedores" />
+      <div className="p-4 lg:p-6">
       <VendedoresList
         vendedores={(vendedorProfilesRes.data || []) as Profile[]}
         cierres={cierresRes.data || []}
@@ -61,6 +66,7 @@ export default async function ManagerVendedoresPage() {
         trackeo={trackeoRes.data || []}
         year={year}
       />
-    </div>
+      </div>
+    </>
   )
 }

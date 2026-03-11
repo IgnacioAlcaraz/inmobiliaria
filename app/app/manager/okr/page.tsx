@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, getCurrentProfile } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ManagerOkrGlobal } from "@/components/manager/manager-okr-global";
+import { AppHeader } from "@/components/app-header";
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -19,7 +20,12 @@ export default async function Page() {
     .eq("manager_id", user.id);
   const vendedorIds = (assignments || []).map((a) => a.vendedor_id);
   if (vendedorIds.length === 0)
-    return <div className="p-6">No tienes vendedores asignados.</div>;
+    return (
+      <>
+        <AppHeader title="OKR Global" />
+        <div className="p-4 lg:p-6"><p className="text-muted-foreground">No tienes vendedores asignados.</p></div>
+      </>
+    );
 
   const year = new Date().getFullYear();
   const startOfYear = `${year}-01-01`;
@@ -46,14 +52,17 @@ export default async function Page() {
   ]);
 
   return (
-    <div className="p-6">
-      <ManagerOkrGlobal
-        objetivos={objetivosRes.data || []}
-        cierres={cierresRes.data || []}
-        vendedores={profilesRes.data || []}
-        year={year}
-        managerId={user.id}
-      />
-    </div>
+    <>
+      <AppHeader title="OKR Global" />
+      <div className="p-4 lg:p-6">
+        <ManagerOkrGlobal
+          objetivos={objetivosRes.data || []}
+          cierres={cierresRes.data || []}
+          vendedores={profilesRes.data || []}
+          year={year}
+          managerId={user.id}
+        />
+      </div>
+    </>
   );
 }
