@@ -141,12 +141,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">¿No tienes una cuenta? </span>
-            <Link href="/signup" className="font-semibold text-primary hover:underline">
-              Solicitar acceso
-            </Link>
-          </div>
         </div>
       </div>
     </div>
