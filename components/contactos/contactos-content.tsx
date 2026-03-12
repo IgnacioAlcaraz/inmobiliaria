@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ContactoForm } from "@/components/contactos/contacto-form";
 import { createClient } from "@/lib/supabase/client";
 import type { Contacto, ContactoTag, ContactoEstado } from "@/lib/types";
-import { CONTACTO_ESTADOS } from "@/lib/types";
+import { CONTACTO_ESTADOS, CONTACTO_INSTANCIAS } from "@/lib/types";
 import { formatDateTimeDisplay } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -25,6 +25,7 @@ import {
   AlertCircle,
   Filter,
   X,
+  ChevronRight,
 } from "lucide-react";
 import {
   Sheet,
@@ -152,6 +153,20 @@ export function ContactosContent({
     setFilterPrioridad("all");
   };
 
+  // Funnel data
+  const FUNNEL_STAGES = [
+    { instancia: "Llamado / Prospeccion", label: "Llamados", ratio: "10:1", ratioLabel: "10 → 1 reunión" },
+    { instancia: "Reunion de Negocio",    label: "Reuniones",  ratio: "5:1",  ratioLabel: "5 → 1 pre-listing" },
+    { instancia: "Pre Listing",           label: "Pre-Listing", ratio: "5:1", ratioLabel: "5 → 1 captación" },
+    { instancia: "Captacion",             label: "Captaciones", ratio: "5:1", ratioLabel: "5 → 1 venta" },
+    { instancia: "Venta",                 label: "Ventas",     ratio: null,   ratioLabel: null },
+  ] as const
+
+  const funnelCounts = FUNNEL_STAGES.map((s) => ({
+    ...s,
+    count: contactos.filter((c) => c.instancia === s.instancia).length,
+  }))
+
   // Stats
   const totalContactos = contactos.length;
   const pendientesSeguimiento = contactos.filter(
@@ -200,6 +215,32 @@ export function ContactosContent({
           </Card>
         )}
       </div>
+
+      {/* Funnel */}
+      <Card>
+        <CardContent className="p-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Embudo de Conversión</p>
+          <div className="flex items-center gap-1 flex-wrap">
+            {funnelCounts.map((stage, i) => (
+              <div key={stage.instancia} className="flex items-center gap-1">
+                <div className="flex flex-col items-center min-w-[80px]">
+                  <span className="text-2xl font-bold">{stage.count}</span>
+                  <span className="text-xs text-muted-foreground text-center leading-tight">{stage.label}</span>
+                </div>
+                {stage.ratio && (
+                  <div className="flex flex-col items-center gap-0.5 px-1">
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">{stage.ratio}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Objetivo: 10 llamadas → 1 reunión → 1 pre-listing (20%) → 1 captación (20%) → 1 venta (20%)
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Actions + Filters */}
       <div className="flex flex-col gap-3">
