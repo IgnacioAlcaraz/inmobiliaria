@@ -111,7 +111,8 @@ export const contactoSchema = z.object({
   ubicacion: z.string().optional().nullable(),
   estado: z.enum(['Nuevo', 'Contactado', 'En reunion', 'Negociacion', 'Cerrado', 'Perdido']).default('Nuevo'),
   clasificacion: z.enum(['A+','A','B','C','D']).optional().nullable(),
-  instancia: z.enum(['contacto','llamado','prelisting','reunion','venta']).nullable().default('contacto'),
+  instancia: z.enum(['Llamado / Prospeccion','Reunion de Negocio','Pre Listing','Captacion','Venta']).nullable().optional(),
+  grupo: z.enum(['Familia','Amigos','Trabajo','Colegio','Vecinos']).nullable().optional(),
   tipo_cliente: z.enum(['Comprador', 'Vendedor', 'Inversor', 'Alquiler', 'Tasacion', 'Permuta']).optional().nullable(),
   forma_pago: z.enum(['Contado', 'Credito aprobado', 'Credito en tramite', 'Necesita vender primero']).optional().nullable(),
   motivacion: z.array(z.string()).default([]),
@@ -121,6 +122,11 @@ export const contactoSchema = z.object({
   seguimiento_recordatorio: z.boolean().default(false),
   seguimiento_prioridad: z.enum(['Baja', 'Media', 'Alta']).default('Media'),
   seguimiento_hecho: z.boolean().default(false),
+  fecha_nacimiento: z.string().optional().nullable(),
+  estado_civil: z.string().optional().nullable(),
+  hijos: z.string().optional().nullable(),
+  deportes: z.string().optional().nullable(),
+  hobbies: z.string().optional().nullable(),
 })
 
 export type ContactoFormData = z.infer<typeof contactoSchema>

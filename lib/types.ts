@@ -156,11 +156,17 @@ export type MotivacionOption =
 
 export type ContactoClasificacion = "A+" | "A" | "B" | "C" | "D";
 export type ContactoInstancia =
-  | "contacto"
-  | "llamado"
-  | "prelisting"
-  | "reunion"
-  | "venta";
+  | "Llamado / Prospeccion"
+  | "Reunion de Negocio"
+  | "Pre Listing"
+  | "Captacion"
+  | "Venta";
+export type ContactoGrupo =
+  | "Familia"
+  | "Amigos"
+  | "Trabajo"
+  | "Colegio"
+  | "Vecinos";
 
 export const CONTACTO_ESTADOS: ContactoEstado[] = [
   "Nuevo",
@@ -206,11 +212,18 @@ export const CONTACTO_CLASIFICACIONES: ContactoClasificacion[] = [
   "D",
 ];
 export const CONTACTO_INSTANCIAS: ContactoInstancia[] = [
-  "contacto",
-  "llamado",
-  "prelisting",
-  "reunion",
-  "venta",
+  "Llamado / Prospeccion",
+  "Reunion de Negocio",
+  "Pre Listing",
+  "Captacion",
+  "Venta",
+];
+export const CONTACTO_GRUPOS: ContactoGrupo[] = [
+  "Familia",
+  "Amigos",
+  "Trabajo",
+  "Colegio",
+  "Vecinos",
 ];
 
 export interface Contacto {
@@ -223,7 +236,8 @@ export interface Contacto {
   ubicacion: string | null;
   estado: ContactoEstado;
   clasificacion?: ContactoClasificacion | null;
-  instancia?: ContactoInstancia;
+  instancia?: ContactoInstancia | null;
+  grupo?: ContactoGrupo | null;
   tipo_cliente: TipoCliente | null;
   forma_pago: FormaPago | null;
   motivacion: MotivacionOption[];
@@ -233,10 +247,12 @@ export interface Contacto {
   seguimiento_recordatorio: boolean;
   seguimiento_prioridad: SeguimientoPrioridad;
   seguimiento_hecho: boolean;
-
-
-
-  
+  // Personal
+  fecha_nacimiento: string | null;
+  estado_civil: string | null;
+  hijos: string | null;
+  deportes: string | null;
+  hobbies: string | null;
   estado_changed_at: string | null;
   created_at: string;
   updated_at: string;

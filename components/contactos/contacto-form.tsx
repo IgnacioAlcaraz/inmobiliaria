@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner'
 import { useState } from 'react'
 import { Plus, X, Search } from 'lucide-react'
-import type { Contacto, ContactoTag, ContactoClasificacion, ContactoInstancia } from '@/lib/types'
+import type { Contacto, ContactoTag, ContactoClasificacion, ContactoInstancia, ContactoGrupo } from '@/lib/types'
 import {
   CONTACTO_ESTADOS,
   TIPO_CLIENTE_OPTIONS,
@@ -29,6 +29,7 @@ import {
   PRIORIDAD_OPTIONS,
   CONTACTO_CLASIFICACIONES,
   CONTACTO_INSTANCIAS,
+  CONTACTO_GRUPOS,
 } from '@/lib/types'
 
 interface CaptacionOption {
@@ -82,7 +83,8 @@ export function ContactoForm({ contacto, tags, captaciones, userId, onSuccess }:
       ubicacion: contacto?.ubicacion || '',
       estado: contacto?.estado || 'Nuevo',
       clasificacion: contacto?.clasificacion || null,
-      instancia: contacto?.instancia || 'contacto',
+      instancia: contacto?.instancia || null,
+      grupo: contacto?.grupo || null,
       tipo_cliente: contacto?.tipo_cliente || null,
       forma_pago: contacto?.forma_pago || null,
       motivacion: contacto?.motivacion || [],
@@ -92,6 +94,11 @@ export function ContactoForm({ contacto, tags, captaciones, userId, onSuccess }:
       seguimiento_recordatorio: contacto?.seguimiento_recordatorio || false,
       seguimiento_prioridad: contacto?.seguimiento_prioridad || 'Media',
       seguimiento_hecho: contacto?.seguimiento_hecho || false,
+      fecha_nacimiento: contacto?.fecha_nacimiento || '',
+      estado_civil: contacto?.estado_civil || '',
+      hijos: contacto?.hijos || '',
+      deportes: contacto?.deportes || '',
+      hobbies: contacto?.hobbies || '',
     },
   })
 
@@ -333,6 +340,22 @@ export function ContactoForm({ contacto, tags, captaciones, userId, onSuccess }:
       </div>
 
       <div className="grid gap-1.5">
+        <Label>Grupo</Label>
+        <Select
+          defaultValue={contacto?.grupo || '_none'}
+          onValueChange={(val) => setValue('grupo', val === '_none' ? null : (val as ContactoFormData['grupo']))}
+        >
+          <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_none">Sin especificar</SelectItem>
+            {CONTACTO_GRUPOS.map((g) => (
+              <SelectItem key={g} value={g}>{g}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-1.5">
         <Label>Forma de Pago</Label>
         <Select
           defaultValue={contacto?.forma_pago || ''}
@@ -514,6 +537,47 @@ export function ContactoForm({ contacto, tags, captaciones, userId, onSuccess }:
             onCheckedChange={(checked) => setValue('seguimiento_hecho', !!checked)}
           />
           <Label htmlFor="seguimiento_hecho" className="text-sm">Seguimiento hecho</Label>
+        </div>
+      </div>
+
+      <SectionLabel>Personal</SectionLabel>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="fecha_nacimiento">F. Nacimiento</Label>
+          <Input id="fecha_nacimiento" type="date" {...register('fecha_nacimiento')} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label>Estado Civil</Label>
+          <Select
+            defaultValue={contacto?.estado_civil || '_none'}
+            onValueChange={(val) => setValue('estado_civil', val === '_none' ? null : val)}
+          >
+            <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">Sin especificar</SelectItem>
+              <SelectItem value="Soltero/a">Soltero/a</SelectItem>
+              <SelectItem value="Casado/a">Casado/a</SelectItem>
+              <SelectItem value="Conviviente">Conviviente</SelectItem>
+              <SelectItem value="Divorciado/a">Divorciado/a</SelectItem>
+              <SelectItem value="Viudo/a">Viudo/a</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="hijos">Hijos</Label>
+          <Input id="hijos" placeholder="Ej: 2" {...register('hijos')} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="deportes">Deportes</Label>
+          <Input id="deportes" placeholder="Ej: Tenis" {...register('deportes')} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="hobbies">Hobbies</Label>
+          <Input id="hobbies" placeholder="Ej: Pintura" {...register('hobbies')} />
         </div>
       </div>
 
